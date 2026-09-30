@@ -7,7 +7,7 @@ We work through each phase together. A phase is only "Done" when its document is
 
 | # | Phase | Document | Status |
 |---|-------|----------|--------|
-| 1 | Business case & vision | [01-business-case.md](01-business-case.md) | Draft v1 |
+| 1 | Business case & vision | [01-business-case.md](01-business-case.md) | Draft v2 |
 | 2 | Users, personas & scope (MVP vs later) | 02-scope.md | Not started |
 | 3 | Functional requirements (Given/When/Then) | 03-requirements.md | Not started |
 | 4 | Non-functional requirements (performance, devices, a11y, privacy) | 04-nfr.md | Not started |
