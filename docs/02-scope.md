@@ -1,6 +1,6 @@
 # 02 — Scope: MVP vs Later
 
-_Status: Proposal — to be discussed._
+_Status: **Agreed v1.0** (2026-09-30)._
 
 ## Persona
 **"The Idea Catcher"** (primary user = the product owner)
@@ -22,6 +22,7 @@ _Status: Proposal — to be discussed._
 |------|------|-------------|
 | Projects | PRJ | Create, open, rename, delete projects; tempo and time signature |
 | Recording | REC | Record audio from the microphone into a track |
+| Playback | PLY | Play back recordings and projects |
 | Metronome | MET | Click track, count-in |
 | Tracks | TRK | Multiple tracks, play together, mute, volume, delete |
 | Instruments | INS | Built-in drums and piano |
@@ -68,10 +69,27 @@ Goal: prove the full pipeline (code → tests → CI → deployed URL) with mini
 - Default loop library.
 - Shared library between users.
 - Native mobile apps.
-- Effects, mixing automation, MIDI export.
+- Effects, mixing automation.
+- MIDI export of loops (wanted later, but not the core appeal: audio recording is).
+
+## Limits (MVP)
+| Limit | Value | Note |
+|-------|-------|------|
+| Tracks per project | 8 | Boundary-tested (8 allowed, 9th refused). |
+| Recording length per track | 5 minutes | The app is for ideas, not finished songs. A single constant, easy to change. |
+
+## Look & feel
+Visual design is worked out gradually, release by release, after the test structure is in place.
+Requirements stay design-neutral (see roadmap conventions).
 
 ## Open questions
-1. Does the release order make sense? (The alternative is to start with Capture mode first.)
-2. Should MIDI export of loops be added for later? Ableton can import MIDI, so loops stay editable there.
-3. How many tracks per project are enough? (Suggestion: max 8 in the MVP.)
-4. Maximum recording length per track? (Suggestion: 10 minutes.)
+_None._
+
+## Decision log
+| Date | Decision | Reason |
+|------|----------|--------|
+| 2026-09-30 | Release order 0.1 → 0.4 agreed; walking skeleton first. | Full test/CI/deploy structure in place before the app grows. |
+| 2026-09-30 | Audio only. MIDI export of loops moved to "later". | Recording live instruments is the core appeal; MIDI tools already exist. |
+| 2026-09-30 | Max 8 tracks per project. | Enough for idea sketches; clear boundary for testing. |
+| 2026-09-30 | Max recording length 5 minutes per track (proposed; owner said "can be much lower"). | Ideas, not finished songs. Keeps storage and memory small on phones. |
+| 2026-09-30 | Look and feel is designed gradually, after the test structure exists. | Structure before polish. |
