@@ -22,6 +22,7 @@ _Status: **Agreed v1.0** (2026-09-30)._
 |------|------|-------------|
 | Projects | PRJ | Create, open, rename, delete projects; tempo and time signature |
 | Recording | REC | Record audio from the microphone into a track |
+| Storage | STO | Keep recordings and projects on the device between sessions |
 | Playback | PLY | Play back recordings and projects |
 | Metronome | MET | Click track, count-in |
 | Tracks | TRK | Multiple tracks, play together, mute, volume, delete |
@@ -39,6 +40,7 @@ Goal: prove the full pipeline (code → tests → CI → deployed URL) with mini
 - Must: Record one audio track in the browser (phone and computer).
 - Must: Play it back.
 - Must: Export it as WAV.
+- Must: The recording is kept on the device between sessions (added 2026-09-30).
 - Must: Deployed to a public URL with CI running tests.
 
 ### Release 0.2: "Multitrack"

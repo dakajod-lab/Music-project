@@ -9,7 +9,7 @@ We work through each phase together. A phase is only "Done" when its document is
 |---|-------|----------|--------|
 | 1 | Business case & vision | [01-business-case.md](01-business-case.md) | ✅ Agreed v1.0 |
 | 2 | Users, personas & scope (MVP vs later) | [02-scope.md](02-scope.md) | ✅ Agreed v1.0 |
-| 3 | Functional requirements (Given/When/Then), per release | [03-requirements.md](03-requirements.md) | In progress (0.1) |
+| 3 | Functional requirements (Given/When/Then), per release | [03-requirements.md](03-requirements.md) | ✅ 0.1 agreed |
 | 4 | Non-functional requirements (performance, devices, a11y, privacy) | 04-nfr.md | Not started |
 | 4b | Risk workshop (in-depth review of R1–R7, likelihood × impact) | 04b-risk-register.md | Not started |
 | 5 | Architecture & tech stack decisions (ADRs) | 05-architecture.md | Not started |

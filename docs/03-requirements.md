@@ -1,6 +1,6 @@
 # 03 — Functional Requirements
 
-_Status: Release 0.1 in draft._
+_Status: Release 0.1 **agreed v1.0** (2026-09-30)._
 
 ## How to read this document
 - Each requirement is a **user story** with an ID (`AREA-NNN`) and **acceptance criteria** (AC)
@@ -68,10 +68,10 @@ Feature: Record audio
       | 4 minutes 59 sec  | still in progress                          |
       | 5 minutes         | stopped automatically and kept in full     |
 
-  Scenario: REC-002.2 User is warned before the limit
+  Scenario: REC-002.2 Recording time is always visible
     Given a recording is in progress
-    When 30 seconds of recording time remain ❓
-    Then the user is told that the recording will stop soon
+    Then the user can see the elapsed recording time at all times
+    And the user can see the maximum recording length
 ```
 
 ### REC-003: Interrupted recording is not lost
@@ -126,6 +126,7 @@ Feature: Export
     And the file has the same duration as the recording
     And the file contains the same audio that was heard during playback
 
+  # Manual test. Run when the impact analysis for a release shows that export or audio encoding changed.
   Scenario: EXP-001.2 Exported file opens in Ableton
     Given a WAV file exported by the app
     When the file is imported into Ableton Live
@@ -136,22 +137,66 @@ Feature: Export
     Then export is not available
 ```
 
-### REC-004: A new recording replaces the previous one ❓
-_In 0.1 there are no projects and only one track._
+### REC-004: A new recording replaces the previous one
+_In 0.1 there are no projects, only one track, and no list of takes. This may change after user testing._
 
 ```gherkin
-  Scenario: REC-004.1 Record over an existing recording
+  Scenario: REC-004.1 Replace after confirmation
     Given a finished recording exists
     When the user starts a new recording
-    Then the user is asked to confirm that the existing recording will be replaced
+    And the user confirms that the existing recording will be replaced
+    Then the new recording starts
+    And the previous recording is deleted once the new recording is stopped
+
+  Scenario: REC-004.2 Keep the existing recording
+    Given a finished recording exists
+    When the user starts a new recording
+    And the user cancels the replacement
+    Then no recording starts
+    And the existing recording is unchanged
+```
+
+### STO-001: Recording is kept on the device
+**As** the Idea Catcher, **I want** my recording to still be there when I come back to the app,
+**so that** an idea is never lost just because I closed the browser.
+
+```gherkin
+Feature: Local storage
+
+  Scenario Outline: STO-001.1 Recording survives leaving the app
+    Given a finished recording exists
+    When the user <action>
+    And the user opens the app again
+    Then the same recording is available for playback and export
+
+    Examples:
+      | action                        |
+      | reloads the page              |
+      | closes the browser tab        |
+      | restarts the browser          |
+
+  Scenario: STO-001.2 Audio is saved while recording
+    Given a recording is in progress
+    When the app is closed unexpectedly (crash, tab closed, battery dies)
+    And the user opens the app again
+    Then the audio recorded up to a few seconds before the app closed is available
+
+  Scenario: STO-001.3 Device storage is full
+    Given the device does not have enough free storage
+    When the user starts or continues a recording
+    Then the user is told that storage is full
+    And the audio recorded so far is kept
 ```
 
 ---
 
 ## Open questions (Release 0.1)
-1. **REC-002.2:** Should there be a warning before the 5-minute limit, and if so, how long before (30 s)?
-2. **REC-004:** In 0.1, should a new recording replace the old one (after confirmation), or should we keep a
-   simple list of takes?
-3. **Persistence:** Should the recording still be there after the page is reloaded or the browser is closed?
-   (If not, it is gone unless exported. Simpler, but it conflicts with R4 data loss.)
-4. **EXP-001.2** needs a human with Ableton, so it is a **manual** test. Is that OK as a release checklist item?
+_None._
+
+## Decision log
+| Date | Decision | Reason |
+|------|----------|--------|
+| 2026-09-30 | No warning before the recording limit; elapsed time and limit are always visible instead. | Simple; the user can always see the time. |
+| 2026-09-30 | A new recording replaces the old one after confirmation; no list of takes in 0.1. | Simple first version; may change after user testing. |
+| 2026-09-30 | Recordings are stored on the device and survive reload/close (new story STO-001). | Losing an idea on close is unacceptable (R4). |
+| 2026-09-30 | EXP-001.2 (Ableton import) is a manual test, run when the impact analysis requires it, not every release. | Needs a human with Ableton; only relevant when export changes. |
