@@ -1,6 +1,6 @@
 # 01 — Business Case & Vision
 
-_Status: Draft v2 — agreed direction, details open (see Open questions)._
+_Status: **Agreed v1.0** (2026-09-30). Changes after this point are recorded in the decision log._
 
 ## Problem statement
 Musical ideas (melodies, riffs, rhythms) come at random moments. Capturing them quickly
@@ -56,7 +56,8 @@ Design decisions favour the primary user. The app should not become complex for 
 | **Project** | One musical idea: a set of tracks sharing one tempo (BPM) and time signature. |
 | **Track** | One layer of a project: either recorded audio or a loop played by a built-in instrument. |
 | **Instrument** | A built-in sound source: **drums** or **piano** (v1). |
-| **Loop** | A short musical pattern the user creates with an instrument. Can be saved to the library and reused. |
+| **Loop** | A short musical pattern the user creates with an instrument, either by placing notes on a grid or by playing live. Can be saved to the library and reused. |
+| **Quantize** | Automatically moving live-played notes to the nearest beat/grid position. |
 | **Library** | The user's personal collection of saved loops. |
 | **Capture / Studio** | The two modes of the app (see Product concept). |
 
@@ -65,6 +66,8 @@ Design decisions favour the primary user. The app should not become complex for 
 - Learning project: prefer free tooling or free tiers.
 
 ## Key risks (initial — to become the basis of risk-based testing)
+
+> These risks get an in-depth review in a dedicated risk workshop (see roadmap) before the test strategy is written.
 | ID | Risk | Why it matters | Early idea |
 |----|------|----------------|------------|
 | R1 | **Recording latency / track misalignment.** Overdubbed tracks drift or are offset compared with the metronome or earlier tracks. | Ruins multitrack and Ableton export (G3, G4). | Latency calibration; automated alignment tests with known signals. |
@@ -76,11 +79,7 @@ Design decisions favour the primary user. The app should not become complex for 
 | R7 | **Library data loss or corruption.** Saved loops disappear (browser storage cleared) or can no longer be loaded after an app update. | The user builds up the library over time, so losing it is costly. | Library backup/export; migration tests between app versions. |
 
 ## Open questions
-1. **How is a loop created?** (a) programming notes on a grid (step sequencer / piano roll), (b) playing live on on-screen pads/keys while it records, or (c) both?
-2. Is the loop library shared between phone and computer? (Without sync, this would also mean manual transfer.)
-3. Export: WAV assumed. Which sample rate/bit depth? (Suggestion: 48 kHz / 24-bit, a common Ableton default.)
-4. Noise filter toggle: default on or off? Per track or per project?
-5. Is a default loop library needed? It is noted for a later version, not v1.
+_None. All questions from the business case phase are resolved (see decision log)._
 
 ## Decision log
 | Date | Decision | Reason |
@@ -97,3 +96,7 @@ Design decisions favour the primary user. The app should not become complex for 
 | 2026-09-30 | Noise filtering is a toggle, not always on. | Browser noise suppression is tuned for speech and may harm instruments (R2). |
 | 2026-09-30 | Device transfer in v1 = manual file transfer (Option A). Cloud inbox (Option B) is the first candidate after the MVP. | Simplest working path; B adds auth and API work later. |
 | 2026-09-30 | BPM is not in the exported file name, but it is shown in the UI when saving/exporting. | File names stay clean; the user still sees the tempo to set it in Ableton. |
+| 2026-09-30 | Loops can be created both by placing notes on a grid and by playing live. | Grid gives precision; live playing is faster and more natural. Which one comes first is decided in the scope phase. |
+| 2026-09-30 | The loop library can be moved between devices by file in v1. Sharing (e.g. via cloud) comes later. | Consistent with manual file transfer (Option A). |
+| 2026-09-30 | Export format: WAV, 48 kHz / 24-bit. | Common Ableton default; lossless. |
+| 2026-09-30 | Noise filter: per track, off by default. | Mostly useful for voice; can harm instruments (R2). |
