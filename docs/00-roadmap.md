@@ -10,9 +10,9 @@ We work through each phase together. A phase is only "Done" when its document is
 | 1 | Business case & vision | [01-business-case.md](01-business-case.md) | ✅ Agreed v1.0 |
 | 2 | Users, personas & scope (MVP vs later) | [02-scope.md](02-scope.md) | ✅ Agreed v1.0 |
 | 3 | Functional requirements (Given/When/Then), per release | [03-requirements.md](03-requirements.md) | ✅ 0.1 agreed (in `/features`) |
-| 4 | Non-functional requirements (performance, devices, a11y, privacy) | [04-nfr.md](04-nfr.md) | Collecting |
+| 4 | Non-functional requirements (performance, devices, a11y, privacy) | [04-nfr.md](04-nfr.md) | In progress |
 | 4b | Risk workshop (in-depth review of R1–R7, likelihood × impact) | 04b-risk-register.md | Not started |
-| 5 | Architecture & tech stack decisions (ADRs) | 05-architecture.md | Not started |
+| 5 | Architecture & tech stack decisions (ADRs) | [05-architecture.md](05-architecture.md) | ADR-001 recorded |
 | 6 | Test strategy (levels, tools, risk-based priorities) | 06-test-strategy.md | Not started |
 | 7 | Code skeleton + first tests | `/src`, `/tests` | Not started |
 | 8 | CI/CD pipeline & quality gates | 08-ci-cd.md | Not started |

@@ -1,7 +1,7 @@
 # Feature files: the single source of truth for functional requirements
 
 Requirements are written in Gherkin and live here, next to the code. The same files are
-executed as acceptance tests (BDD runner chosen in phase 5; Reqnroll or playwright-bdd).
+executed as acceptance tests with **playwright-bdd** (see ADR-001 in docs/05-architecture.md).
 
 ## Structure
 | Gherkin keyword | Meaning in this project |
