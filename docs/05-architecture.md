@@ -1,6 +1,6 @@
 # 05 — Architecture & Decisions
 
-_Status: **Proposal**. ADR-001 is agreed; ADR-002 to ADR-008 are proposals for discussion._
+_Status: **In review**. ADR-001, 003, 004 agreed; ADR-008 waiting for the repository to be made public._
 
 ## Overview
 
@@ -68,7 +68,7 @@ TypeScript strict mode + ESLint as static checks.
 - **Consequences:** No server, database or login to build, host or test. A backend can be added later (cloud inbox, Option B).
   Installable as a PWA (home-screen icon on the phone) to support fast start (NFR-PERF-001).
 
-## ADR-003: TypeScript + Vite + UI framework — proposal, ❓ framework to choose
+## ADR-003: TypeScript + Vite + React — ✅ agreed 2026-10-05
 - **Context:** One language for app and tests (ADR-001). Fast start on the phone (≤ 3 s, stretch 1.5 s).
 - **Decision:** TypeScript (strict) and Vite as build tool. UI framework: see options.
 
@@ -78,9 +78,9 @@ TypeScript strict mode + ESLint as static checks.
 | **Svelte** | Small and fast; simple code | Smaller ecosystem |
 | **Preact** | React API with a tiny bundle | Some React libraries need adapting |
 
-- **Recommendation:** React. The UI is small, so bundle size is not a real problem, and the testing skills transfer to most jobs.
+- **Decision:** React. The UI is small, so bundle size is not a real problem, and the testing skills (React Testing Library) transfer to most jobs.
 
-## ADR-004: Capture raw audio with Web Audio API + AudioWorklet (not MediaRecorder) — proposal
+## ADR-004: Capture raw audio with Web Audio API + AudioWorklet (not MediaRecorder) — ✅ agreed 2026-10-05
 - **Context:** Browsers offer two ways to record:
   - `MediaRecorder` is simple, but gives **compressed** audio (Opus/WebM) and imprecise timing.
   - **Web Audio API with an AudioWorklet** gives the **raw samples** as they arrive.
@@ -114,9 +114,23 @@ TypeScript strict mode + ESLint as static checks.
 - **Consequences:** Enables **state transition testing**: every state × event combination can be tested, including
   invalid ones (e.g. "stop" while idle). The state diagram doubles as documentation.
 
-## ADR-008: Hosting = Cloudflare Pages (or Netlify), deployed from GitHub Actions — proposal, ❓
-- **Context:** The repository is **private**. GitHub Pages requires a paid plan for private repositories.
-  Microphone access requires HTTPS (NFR-SEC-002).
-- **Decision:** Cloudflare Pages (free, HTTPS, works with private repos). Netlify is an equivalent alternative.
-- **Consequences:** Every pull request gets its own **preview URL**, so a change can be tested on the real phone
-  before it is merged. CI runs all tests before deploying (quality gate).
+## ADR-008: Hosting = GitHub Pages, public repository — ⏳ agreed, waiting for repo to be made public
+- **Context:** Everything should be in one place. GitHub Pages is free for **public** repositories
+  (private ones need a paid plan). Microphone access requires HTTPS (NFR-SEC-002), which GitHub Pages provides.
+- **Decision:** Make the repository public and deploy with GitHub Actions to GitHub Pages.
+- **Consequences:**
+  - One place for code, docs, CI and hosting.
+  - **Trade-off:** GitHub Pages hosts one site, so there is no automatic preview URL per pull request
+    (Cloudflare Pages / Netlify would give that). Changes are tested locally and in CI before merge,
+    and on the reference phone after deploy. Revisit if this becomes a problem.
+  - Security measures for a public repository: see below.
+
+### Security measures for a public repository
+| Risk | Measure |
+|------|---------|
+| Secrets (keys, passwords) committed by mistake | The app needs no secrets (no backend). Enable GitHub **secret scanning + push protection** (free for public repos). |
+| Personal e-mail visible in commit history | Use GitHub's `noreply` commit e-mail for future commits. |
+| Malicious pull requests from forks running in CI | Default GitHub settings: fork PRs run without secrets and need approval. Never use `pull_request_target`. Workflows get minimal `permissions`. |
+| Vulnerable npm dependencies (supply chain) | Lockfile committed; **Dependabot** alerts and updates; `npm audit` in CI. |
+| Others copy the code | Allowed to read; reuse only under the licence we choose (no licence = all rights reserved). |
+| Users' data | Not affected by repo visibility: audio stays on the user's device (NFR-SEC-001). The deployed site is public either way. |
