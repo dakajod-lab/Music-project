@@ -7,7 +7,7 @@ Feature: Export (EXP)
     Scenario: EXP-001.1 Export
       Given a recording exists
       When the user exports it
-      Then a 48 kHz / 24-bit WAV file is saved
+      Then a 48 kHz / 24-bit mono WAV file is saved
       And it has the same length and audio as the recording
 
     Scenario: EXP-001.2 Nothing to export
