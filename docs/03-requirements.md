@@ -14,6 +14,7 @@ They are the single source of truth and run as acceptance tests. This page is on
 | REC-003 | Interrupted recording is kept | 0.1 | [recording.feature](../features/recording.feature) |
 | REC-004 | New recording replaces the old one | 0.1 | [recording.feature](../features/recording.feature) |
 | REC-005 | Input level is visible (R11) | 0.1 | [recording.feature](../features/recording.feature) |
+| REC-006 | Screen stays on while recording (R3) | 0.1 | [recording.feature](../features/recording.feature) |
 | STO-001 | Recording is kept on the device | 0.1 | [storage.feature](../features/storage.feature) |
 | PLY-001 | Play back a recording | 0.1 | [playback.feature](../features/playback.feature) |
 | EXP-001 | Export as WAV | 0.1 | [export.feature](../features/export.feature) |
@@ -35,3 +36,4 @@ Non-functional requirements (usability, performance, devices, ...) are in [04-nf
 | 2026-10-01 | Confirm and cancel must be clearly distinguishable → recorded as usability NFR (NFR-USA-001), not as functional AC. | It is about how the UI looks, which AC deliberately leave out. |
 | 2026-10-01 | Gherkin moved into `/features/*.feature`; these files are the single source of truth and will run as tests. | Owner wants requirements and tests in one place (living documentation). |
 | 2026-10-05 | Added REC-005 (input level and clipping indicator) to 0.1. | Risk R11: distorted recordings make the app useless. |
+| 2026-10-05 | Added REC-005.3 (input level before recording) and REC-006 (screen stays on while recording). | Check the setup without a test take; prevent the most common interruption (R3). |

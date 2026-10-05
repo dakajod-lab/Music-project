@@ -85,7 +85,23 @@ Feature: Recording (REC)
       Given a recording is in progress
       Then the current input level is shown
 
+    Scenario: REC-005.3 Input level is shown before recording
+      Given microphone access is granted
+      And no recording is in progress
+      Then the current input level is shown
+
     Scenario: REC-005.2 Clipping is indicated
       Given a recording is in progress
       When the input is too loud and clips
       Then the user is told that the input is clipping
+
+  Rule: REC-006 Screen stays on while recording
+    As the Idea Catcher, I want the screen to stay on while I record, so that the phone locking does not stop my recording.
+
+    Scenario: REC-006.1 Screen stays on during recording
+      Given a recording is in progress
+      Then the device screen does not turn off by itself
+
+    Scenario: REC-006.2 Normal screen timeout after recording
+      Given the user has stopped a recording
+      Then the device screen turns off by itself as usual

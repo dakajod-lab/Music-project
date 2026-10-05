@@ -18,7 +18,7 @@ _Status: **Workshop in progress**. Scores below are Claude's first proposal. The
 |----|------|---|---|-------|---------|----------------------|-------------------------|
 | R1 ✅ | Overdubbed tracks are offset from the metronome / earlier tracks (latency) | 3 | 3 | **9** | 0.2 | NFR-TIM-001/002 | Latency calibration; automated test that records a known click through fake microphone input and measures the offset |
 | R2 ✅ | Browser audio processing (noise suppression, echo cancellation, auto gain) harms instrument sound | 3 | 2 | **6** | 0.2 | (noise filter toggle) | All processing off by default; toggle enables noise suppression only. Automated check that settings are applied + exploratory charter [CH-001](charters/CH-001-audio-processing.md) |
-| R3 | Mobile browser limits (audio stops in background, storage limits, OEM battery savers on OxygenOS) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Manual tests on the reference phone; exploratory charter "phone interruptions" |
+| R3 ✅ | Mobile browser limits (audio stops in background, storage limits, OEM battery savers on OxygenOS) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Manual tests on the reference phone; exploratory charter "phone interruptions" |
 | R4 | Recording lost (crash, tab closed, storage full) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Incremental saving; automated kill-the-tab test; storage-full simulation |
 | R5 | Exported file does not import correctly on the other device / in Ableton | 2 | 3 | **6** | 0.1 | EXP-001 | WAV header validation in unit tests; round-trip tests; manual Ableton check when export changes |
 | R6 | Loop timing drifts / touch input lags on the phone | 2 | 2 | **4** | 0.3 | (loops) | Automated scheduling-accuracy tests; touch-latency measurement on the reference phone |
@@ -93,6 +93,32 @@ That is why the user must **see** the level while recording.
 ### R12: Storage full / data evicted — ✅ agreed, score 6
 **Decision:** A warning is enough (STO-001.2). Cheap extra mitigation: ask the browser to mark the app's storage as persistent,
 so it is not deleted automatically when space is low.
+
+### R3: Phone limits (background, lock, calls, battery saver) — ✅ agreed, score 6
+**Mitigation:** Screen stays on while recording (REC-006). Audio before an interruption is kept (REC-003).
+
+**Test approach: two layers.**
+The app's *reaction* to an interruption can be simulated and automated.
+Whether the *real phone* actually sends those signals, and when, can only be checked on the device.
+
+| Situation | What the app actually sees | Automated simulation (Playwright / Chrome DevTools Protocol) |
+|-----------|----------------------------|--------------------------------------------------------------|
+| Switch to another app | Page becomes hidden (`visibilitychange`) | Force visibility to hidden and fire the event |
+| Battery saver freezes the tab | Page is frozen, then maybe discarded | `Page.setWebLifecycleState: frozen`; close and reopen the page |
+| Battery saver kills the tab / crash | Page is gone, app restarts | Crash the page (`Page.crash`), reopen, check ≤ 2 s loss (REC-003) |
+| Phone call takes the microphone | Microphone track ends | Fire an `ended` event on the fake microphone track |
+| Slow phone in power-save mode | Less CPU | CPU throttling (`Emulation.setCPUThrottlingRate`) |
+| Storage almost full (R12) | Storage quota exceeded | Override the storage quota (`Storage.overrideQuotaForOrigin`) |
+| Screen lock (REC-006) | Wake lock requested / released | Check that the wake lock is active while recording |
+
+**Design consequence:** browser APIs (microphone, wake lock, storage) are wrapped in small adapters,
+so tests can inject events. This is called designing for testability; it is decided in phase 5.
+
+**Manual layer:** exploratory charter CH-002 "Phone interruptions" on the reference phone. It checks the
+*assumptions* in the table above: does OxygenOS really fire these signals, and is the recording handled as in the automated tests?
+
+**Possible later step:** run tests in an Android emulator, which can simulate calls, a low battery and power-save (Doze) mode
+with `adb` commands. It is real Android Chrome, but not OxygenOS.
 
 ## Future features from the risk workshop
 | Feature | From risk |
