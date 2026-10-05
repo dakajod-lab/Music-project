@@ -25,6 +25,8 @@ _Status: **Workshop in progress**. Scores below are Claude's first proposal. The
 | R7 | Loop library lost or unreadable after an app update | 2 | 3 | **6** | 0.3 | (library) | Data migration tests between versions; library export as backup |
 | R8 | **New:** iOS Safari audio quirks break the app for general users | 3 | 1 | **3** | later | NFR-CMP-003 | Tier 2 automated WebKit runs; revisit if iOS users matter |
 | R10 | **New:** Bluetooth headphones add 100–300 ms of latency, which makes overdubbing practically impossible | 2 | 2 | **4** | 0.2 | NFR-TIM-001 | Known limitation in v1. Exploratory test with Bluetooth headphones on the reference phone. Warning to the user = future feature |
+| R11 ✅ | Clipping / distortion: phone microphones distort with loud instruments close by; often noticed only afterwards | 3 | 3 | **9** | 0.1 | REC-005 | Input level + clipping indicator (REC-005); unit tests for clipping detection; automated test with a clipped test file as fake mic input; exploratory charter (loud instruments) |
+| R12 ✅ | Phone storage full, or the browser deletes stored recordings when space is low | 2 | 3 | **6** | 0.1 | STO-001.2 | Warning when storage is full (STO-001.2); ask the browser to keep storage persistent. Owner: warning is enough |
 | R9 | **New:** Microphone permission flow differs between browsers / is blocked | 2 | 3 | **6** | 0.1 | REC-001.3/.4 | Automated tests with permission granted/denied; manual check on the reference phone |
 
 ## Risk deep-dives
@@ -72,6 +74,25 @@ echo cancellation removes the metronome and parts of the instrument, auto gain r
 - **No** manual test step of the type "verify that it sounds OK": it has no clear pass/fail and gives no information.
 
 **Decision:** Impact 2 agreed (the user can always record again).
+
+### R11: Clipping / distortion — ✅ agreed, score 9
+**Why it matters:** If recordings are distorted, nobody will use the app (owner). Impact raised to 3.
+
+**Interaction with R2:** turning auto gain *off* (R2) makes clipping *more* likely, because nothing turns the level down.
+A browser app cannot change the phone's hardware microphone gain, so the user has to react (move the phone away or play softer).
+That is why the user must **see** the level while recording.
+
+**Mitigation:** REC-005 in release 0.1: input level and clipping indicator.
+
+**Test approach (high priority):**
+- *Unit:* clipping detection with known sample buffers (silence, normal level, full-scale, a single peak).
+- *Automated E2E:* fake microphone input with a deliberately clipped test file → the clipping indicator appears;
+  a clean test file → it does not.
+- *Exploratory:* loud instruments (piano close up, drums, amp) on the reference phone; charter to be written in phase 6.
+
+### R12: Storage full / data evicted — ✅ agreed, score 6
+**Decision:** A warning is enough (STO-001.2). Cheap extra mitigation: ask the browser to mark the app's storage as persistent,
+so it is not deleted automatically when space is low.
 
 ## Future features from the risk workshop
 | Feature | From risk |

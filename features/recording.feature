@@ -77,3 +77,15 @@ Feature: Recording (REC)
       When the user cancels
       Then no recording starts
       And the old recording is unchanged
+
+  Rule: REC-005 Input level is visible
+    As the Idea Catcher, I want to see how loud my input is, so that I notice distortion before the idea is ruined.
+
+    Scenario: REC-005.1 Input level is shown while recording
+      Given a recording is in progress
+      Then the current input level is shown
+
+    Scenario: REC-005.2 Clipping is indicated
+      Given a recording is in progress
+      When the input is too loud and clips
+      Then the user is told that the input is clipping

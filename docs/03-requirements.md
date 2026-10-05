@@ -13,6 +13,7 @@ They are the single source of truth and run as acceptance tests. This page is on
 | REC-002 | Recording time limit | 0.1 | [recording.feature](../features/recording.feature) |
 | REC-003 | Interrupted recording is kept | 0.1 | [recording.feature](../features/recording.feature) |
 | REC-004 | New recording replaces the old one | 0.1 | [recording.feature](../features/recording.feature) |
+| REC-005 | Input level is visible (R11) | 0.1 | [recording.feature](../features/recording.feature) |
 | STO-001 | Recording is kept on the device | 0.1 | [storage.feature](../features/storage.feature) |
 | PLY-001 | Play back a recording | 0.1 | [playback.feature](../features/playback.feature) |
 | EXP-001 | Export as WAV | 0.1 | [export.feature](../features/export.feature) |
@@ -33,4 +34,4 @@ Non-functional requirements (usability, performance, devices, ...) are in [04-nf
 | 2026-10-01 | Review fixes: REC-001.1 split Ands; REC-001.2 only stops (playback after stop is PLY-001.4); REC-002.1 "automatically"; REC-004 split into ask / confirm / cancel; STO-001.2 "so far" removed. | Owner review. |
 | 2026-10-01 | Confirm and cancel must be clearly distinguishable → recorded as usability NFR (NFR-USA-001), not as functional AC. | It is about how the UI looks, which AC deliberately leave out. |
 | 2026-10-01 | Gherkin moved into `/features/*.feature`; these files are the single source of truth and will run as tests. | Owner wants requirements and tests in one place (living documentation). |
-
+| 2026-10-05 | Added REC-005 (input level and clipping indicator) to 0.1. | Risk R11: distorted recordings make the app useless. |

@@ -38,6 +38,7 @@ _Status: **Agreed v1.0** (2026-09-30)._
 ### Release 0.1: "Walking skeleton" (the thinnest possible end-to-end slice)
 Goal: prove the full pipeline (code → tests → CI → deployed URL) with minimal features.
 - Must: Record one audio track in the browser (phone and computer).
+- Must: Input level and clipping indicator while recording (R11, added 2026-10-05).
 - Must: Play it back.
 - Must: Export it as WAV.
 - Must: The recording is kept on the device between sessions (added 2026-09-30).
