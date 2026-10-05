@@ -19,11 +19,11 @@ _Status: **Workshop in progress**. Scores below are Claude's first proposal. The
 | R1 ✅ | Overdubbed tracks are offset from the metronome / earlier tracks (latency) | 3 | 3 | **9** | 0.2 | NFR-TIM-001/002 | Latency calibration; automated test that records a known click through fake microphone input and measures the offset |
 | R2 ✅ | Browser audio processing (noise suppression, echo cancellation, auto gain) harms instrument sound | 3 | 2 | **6** | 0.2 | (noise filter toggle) | All processing off by default; toggle enables noise suppression only. Automated check that settings are applied + exploratory charter [CH-001](charters/CH-001-audio-processing.md) |
 | R3 ✅ | Mobile browser limits (audio stops in background, storage limits, OEM battery savers on OxygenOS) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Manual tests on the reference phone; exploratory charter "phone interruptions" |
-| R4 | Recording lost (crash, tab closed, storage full) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Incremental saving; automated kill-the-tab test; storage-full simulation |
+| R4 ✅ | Recording lost (crash, tab closed, storage full) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Incremental saving; automated kill-the-tab test; storage-full simulation |
 | R5 | Exported file does not import correctly on the other device / in Ableton | 2 | 3 | **6** | 0.1 | EXP-001 | WAV header validation in unit tests; round-trip tests; manual Ableton check when export changes |
-| R6 | Loop timing drifts / touch input lags on the phone | 2 | 2 | **4** | 0.3 | (loops) | Automated scheduling-accuracy tests; touch-latency measurement on the reference phone |
-| R7 | Loop library lost or unreadable after an app update | 2 | 3 | **6** | 0.3 | (library) | Data migration tests between versions; library export as backup |
-| R8 | **New:** iOS Safari audio quirks break the app for general users | 3 | 1 | **3** | later | NFR-CMP-003 | Tier 2 automated WebKit runs; revisit if iOS users matter |
+| R6 ⏳ | Loop timing drifts / touch input lags on the phone | 2 | 2 | **4** | 0.3 | (loops) | Automated scheduling-accuracy tests; touch-latency measurement on the reference phone |
+| R7 ⏳ | Loop library lost or unreadable after an app update | 2 | 3 | **6** | 0.3 | (library) | Data migration tests between versions; library export as backup |
+| R8 ⏳ | **New:** iOS Safari audio quirks break the app for general users | 3 | 1 | **3** | later | NFR-CMP-003 | Tier 2 automated WebKit runs; revisit if iOS users matter |
 | R10 | **New:** Bluetooth headphones add 100–300 ms of latency, which makes overdubbing practically impossible | 2 | 2 | **4** | 0.2 | NFR-TIM-001 | Known limitation in v1. Exploratory test with Bluetooth headphones on the reference phone. Warning to the user = future feature |
 | R11 ✅ | Clipping / distortion: phone microphones distort with loud instruments close by; often noticed only afterwards | 3 | 3 | **9** | 0.1 | REC-005 | Input level + clipping indicator (REC-005); unit tests for clipping detection; automated test with a clipped test file as fake mic input; exploratory charter (loud instruments) |
 | R12 ✅ | Phone storage full, or the browser deletes stored recordings when space is low | 2 | 3 | **6** | 0.1 | STO-001.2 | Warning when storage is full (STO-001.2); ask the browser to keep storage persistent. Owner: warning is enough |
@@ -119,6 +119,12 @@ so tests can inject events. This is called designing for testability; it is deci
 
 **Possible later step:** run tests in an Android emulator, which can simulate calls, a low battery and power-save (Doze) mode
 with `adb` commands. It is real Android Chrome, but not OxygenOS.
+
+### R4: Recording lost — ✅ agreed, score 6
+Covered by REC-003, STO-001, R3's automated simulations (crash, freeze, storage quota) and charter CH-002. No extra measures.
+
+### R6, R7, R8 — ⏳ provisional
+Scores accepted as they stand. Reviewed in depth when the release they belong to is planned (0.3 / later).
 
 ## Future features from the risk workshop
 | Feature | From risk |
