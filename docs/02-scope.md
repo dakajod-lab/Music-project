@@ -51,7 +51,7 @@ Goal: prove the full pipeline (code → tests → CI → deployed URL) with mini
 - Must: Export all tracks as separate WAVs of the same length, starting at bar 1.
 - Must: BPM shown in the export/save dialog.
 - Should: Mute and volume per track.
-- Should: Noise filter toggle per track (off by default).
+- Should: Noise filter toggle per track (off by default). All browser audio processing is off by default; the toggle turns on noise suppression only (R2).
 
 ### Release 0.3: "Create"
 - Must: Drum and piano instruments.

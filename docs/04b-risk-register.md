@@ -17,7 +17,7 @@ _Status: **Workshop in progress**. Scores below are Claude's first proposal. The
 | ID | Risk | L | I | Score | Release | Requirements affected | Mitigation & test ideas |
 |----|------|---|---|-------|---------|----------------------|-------------------------|
 | R1 ✅ | Overdubbed tracks are offset from the metronome / earlier tracks (latency) | 3 | 3 | **9** | 0.2 | NFR-TIM-001/002 | Latency calibration; automated test that records a known click through fake microphone input and measures the offset |
-| R2 | Browser noise suppression harms instrument sound | 3 | 2 | **6** | 0.2 | (noise filter toggle) | Toggle off by default; listening test with real instruments on the reference phone |
+| R2 ✅ | Browser audio processing (noise suppression, echo cancellation, auto gain) harms instrument sound | 3 | 2 | **6** | 0.2 | (noise filter toggle) | All processing off by default; toggle enables noise suppression only. Automated check that settings are applied + exploratory charter [CH-001](charters/CH-001-audio-processing.md) |
 | R3 | Mobile browser limits (audio stops in background, storage limits, OEM battery savers on OxygenOS) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Manual tests on the reference phone; exploratory charter "phone interruptions" |
 | R4 | Recording lost (crash, tab closed, storage full) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Incremental saving; automated kill-the-tab test; storage-full simulation |
 | R5 | Exported file does not import correctly on the other device / in Ableton | 2 | 3 | **6** | 0.1 | EXP-001 | WAV header validation in unit tests; round-trip tests; manual Ableton check when export changes |
@@ -55,6 +55,23 @@ The new track therefore ends up behind the beat by roughly input + output latenc
 - *Exploratory:* wired vs Bluetooth headphones, phone speaker, external USB mic.
 
 **Decision:** Score 9 agreed. Bluetooth noted as separate risk R10. A Bluetooth warning is a future feature.
+
+### R2: Audio processing harms instrument sound — ✅ agreed, score 6
+**Why it happens:** Browser processing is tuned for speech. Noise suppression cuts sustained notes,
+echo cancellation removes the metronome and parts of the instrument, auto gain removes dynamics.
+
+**Mitigation (decided):**
+- Noise suppression, echo cancellation and auto gain are **all off by default**.
+- The per-track noise filter toggle turns on **noise suppression only**.
+
+**Test approach:**
+- *Automated:* the settings the browser actually applied match what the app asked for
+  (filter off → all three off; filter on → only noise suppression on).
+- *Exploratory acceptance test:* charter [CH-001](charters/CH-001-audio-processing.md) with concrete observations.
+  Run before a release when the impact analysis shows a change to audio processing or the input pipeline.
+- **No** manual test step of the type "verify that it sounds OK": it has no clear pass/fail and gives no information.
+
+**Decision:** Impact 2 agreed (the user can always record again).
 
 ## Future features from the risk workshop
 | Feature | From risk |
