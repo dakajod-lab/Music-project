@@ -72,6 +72,7 @@ Goal: prove the full pipeline (code → tests → CI → deployed URL) with mini
 - Shared library between users.
 - Native mobile apps.
 - Effects, mixing automation.
+- Warning when Bluetooth headphones are used (risk R10).
 - MIDI export of loops (wanted later, but not the core appeal: audio recording is).
 
 ## Limits (MVP)

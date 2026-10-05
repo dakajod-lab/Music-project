@@ -16,7 +16,7 @@ _Status: **Workshop in progress**. Scores below are Claude's first proposal. The
 ## Register
 | ID | Risk | L | I | Score | Release | Requirements affected | Mitigation & test ideas |
 |----|------|---|---|-------|---------|----------------------|-------------------------|
-| R1 | Overdubbed tracks are offset from the metronome / earlier tracks (latency) | 3 | 3 | **9** | 0.2 | NFR-TIM-001/002 | Latency calibration; automated test that records a known click through fake microphone input and measures the offset |
+| R1 ✅ | Overdubbed tracks are offset from the metronome / earlier tracks (latency) | 3 | 3 | **9** | 0.2 | NFR-TIM-001/002 | Latency calibration; automated test that records a known click through fake microphone input and measures the offset |
 | R2 | Browser noise suppression harms instrument sound | 3 | 2 | **6** | 0.2 | (noise filter toggle) | Toggle off by default; listening test with real instruments on the reference phone |
 | R3 | Mobile browser limits (audio stops in background, storage limits, OEM battery savers on OxygenOS) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Manual tests on the reference phone; exploratory charter "phone interruptions" |
 | R4 | Recording lost (crash, tab closed, storage full) | 2 | 3 | **6** | 0.1 | REC-003, STO-001 | Incremental saving; automated kill-the-tab test; storage-full simulation |
@@ -24,7 +24,39 @@ _Status: **Workshop in progress**. Scores below are Claude's first proposal. The
 | R6 | Loop timing drifts / touch input lags on the phone | 2 | 2 | **4** | 0.3 | (loops) | Automated scheduling-accuracy tests; touch-latency measurement on the reference phone |
 | R7 | Loop library lost or unreadable after an app update | 2 | 3 | **6** | 0.3 | (library) | Data migration tests between versions; library export as backup |
 | R8 | **New:** iOS Safari audio quirks break the app for general users | 3 | 1 | **3** | later | NFR-CMP-003 | Tier 2 automated WebKit runs; revisit if iOS users matter |
+| R10 | **New:** Bluetooth headphones add 100–300 ms of latency, which makes overdubbing practically impossible | 2 | 2 | **4** | 0.2 | NFR-TIM-001 | Known limitation in v1. Exploratory test with Bluetooth headphones on the reference phone. Warning to the user = future feature |
 | R9 | **New:** Microphone permission flow differs between browsers / is blocked | 2 | 3 | **6** | 0.1 | REC-001.3/.4 | Automated tests with permission granted/denied; manual check on the reference phone |
 
-## Workshop questions
-_To be discussed one risk at a time._
+## Risk deep-dives
+
+### R1: Track offset (latency) — ✅ agreed, score 9
+**Why it matters:** Latency makes apps like this unusable (owner).
+
+**Where latency comes from:**
+| Source | Typical size | Notes |
+|--------|--------------|-------|
+| Input latency (mic → app) | 5–40 ms | Varies by device and browser |
+| Output latency (app → speaker/headphones) | 5–40 ms wired, 100–300 ms Bluetooth | See R10 |
+| Browser audio buffers | 3–20 ms | Browser reports part of this, not all |
+
+When the user overdubs, they hear the earlier track *late* (output latency) and their playing reaches the app *late* (input latency).
+The new track therefore ends up behind the beat by roughly input + output latency.
+
+**Mitigation:**
+1. Read the latency values the browser reports, and correct recordings by that amount.
+2. Offer a **calibration**: the app plays a click and records it, and the measured delay is the correction value.
+3. Store the correction per device.
+
+**Test approach (high priority):**
+- *Unit:* the alignment calculation (shift by N samples) with known inputs.
+- *Integration (automated):* fake microphone input with a known click at a known position, then assert the recorded click
+  lands within 5 ms (NFR-TIM-001).
+- *Manual (each release from 0.2):* record against the metronome on the reference phone and computer, then check alignment in Ableton.
+- *Exploratory:* wired vs Bluetooth headphones, phone speaker, external USB mic.
+
+**Decision:** Score 9 agreed. Bluetooth noted as separate risk R10. A Bluetooth warning is a future feature.
+
+## Future features from the risk workshop
+| Feature | From risk |
+|---------|-----------|
+| Warn the user when Bluetooth audio output is detected | R10 |
