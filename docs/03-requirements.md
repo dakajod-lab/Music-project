@@ -16,6 +16,7 @@ They are the single source of truth and run as acceptance tests. This page is on
 | REC-005 | Input level is visible (R11) | 0.1 | [recording.feature](../features/recording.feature) |
 | REC-006 | Screen stays on while recording (R3) | 0.1 | [recording.feature](../features/recording.feature) |
 | STO-001 | Recording is kept on the device | 0.1 | [storage.feature](../features/storage.feature) |
+| NFR-A11Y-001 | WCAG 2.2 AA (automated scan) | 0.1 | [accessibility.feature](../features/accessibility.feature) |
 | PLY-001 | Play back a recording | 0.1 | [playback.feature](../features/playback.feature) |
 | EXP-001 | Export as WAV | 0.1 | [export.feature](../features/export.feature) |
 
@@ -37,3 +38,4 @@ Non-functional requirements (usability, performance, devices, ...) are in [04-nf
 | 2026-10-01 | Gherkin moved into `/features/*.feature`; these files are the single source of truth and will run as tests. | Owner wants requirements and tests in one place (living documentation). |
 | 2026-10-05 | Added REC-005 (input level and clipping indicator) to 0.1. | Risk R11: distorted recordings make the app useless. |
 | 2026-10-05 | Added REC-005.3 (input level before recording) and REC-006 (screen stays on while recording). | Check the setup without a test take; prevent the most common interruption (R3). |
+| 2026-10-06 | NFRs that can be automated are also written as scenarios in `/features`, tagged `@nfr`. | One place for everything that runs as a test; NFR definitions stay in 04-nfr.md. |

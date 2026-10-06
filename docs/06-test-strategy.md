@@ -119,7 +119,8 @@ A flaky test passes and fails on the same code. The flakiness itself tells us so
 
 In an audio/timing app the third kind is especially likely and important (R1, R4), so it is checked first, not last.
 
-3. **Automatic retries never hide flakiness:** if CI retries a test and it then passes, it is reported as flaky.
+3. **Automatic retries never hide flakiness:** CI may retry a failed test once, but a test that only passes on retry
+   is reported and tagged as flaky. The retries give *more data* about when and how often it fails.
 4. **Quarantine** (temporarily excluding the test from the gate) is only allowed with a linked issue and only while
    the root cause is being investigated. **Deleting** a test is only allowed when what it checks is covered elsewhere.
 
@@ -129,3 +130,4 @@ In an audio/timing app the third kind is especially likely and important (R1, R4
 | 2026-10-06 | Test levels, techniques, test data and Definition of Done agreed. | Owner review. |
 | 2026-10-06 | No fixed coverage or mutation thresholds; both are reported (P8). | Fixed percentages lead to tests that add no value. |
 | 2026-10-06 | Flaky tests are investigated for root cause (test, approach or product); no blind delete/disable (P7). | Owner: flakiness can point at a wrong method or a real product bug. |
+| 2026-10-06 | One automatic retry in CI is allowed, as long as retried passes are reported as flaky. | More data on flaky tests helps find the root cause. |
