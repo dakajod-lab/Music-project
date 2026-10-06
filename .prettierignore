@@ -1,0 +1,9 @@
+dist
+coverage
+playwright-report
+test-results
+.features-gen
+reports
+package-lock.json
+tests/fixtures/audio
+*.md

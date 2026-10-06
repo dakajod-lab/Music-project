@@ -1,0 +1,40 @@
+# Pipeline 6: run any selection of tests on any branch, on demand.
+# GitHub → Actions → "Manual test run" → Run workflow. Pick the branch under "Use workflow from".
+# Runs here are separate from the PR / main statistics.
+name: Manual test run
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Which tests
+        type: choice
+        options: [all, fast, acceptance]
+        default: acceptance
+      grep:
+        description: 'Only scenarios matching (e.g. @r0.1, @smoke, REC-001.2). Empty = all'
+        type: string
+        default: ''
+      projects:
+        description: Which browsers
+        type: choice
+        options: [tier1, chromium-desktop, chromium-android, tier2, all]
+        default: tier1
+      repeat-each:
+        description: Repeat every test N times (flaky investigation)
+        type: number
+        default: 1
+
+run-name: 'Manual: ${{ inputs.suite }} ${{ inputs.grep }} on ${{ github.ref_name }} (${{ inputs.projects }}, x${{ inputs.repeat-each }})'
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    uses: ./.github/workflows/_tests.yml
+    with:
+      suite: ${{ inputs.suite }}
+      grep: ${{ inputs.grep }}
+      projects: ${{ inputs.projects }}
+      repeat-each: ${{ inputs.repeat-each }}

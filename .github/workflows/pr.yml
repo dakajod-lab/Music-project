@@ -1,0 +1,19 @@
+# Pipelines 1 + 2: fast feedback on every pull request, then acceptance tests.
+name: PR
+
+on:
+  pull_request:
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    uses: ./.github/workflows/_tests.yml
+    with:
+      suite: all
+      projects: tier1

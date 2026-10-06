@@ -1,0 +1,98 @@
+# Reusable test workflow. Called by the PR, deploy, nightly, manual and release pipelines.
+name: Tests (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      suite:
+        description: 'fast | acceptance | all'
+        type: string
+        default: all
+      grep:
+        description: Only run acceptance scenarios matching this (tag like @r0.1, or an ID like REC-001.2)
+        type: string
+        default: ''
+      projects:
+        description: 'tier1 | chromium-desktop | chromium-android | tier2 | all'
+        type: string
+        default: tier1
+      repeat-each:
+        description: Run every acceptance test this many times (flaky hunting)
+        type: number
+        default: 1
+      require-complete:
+        description: Fail if any scenario with this tag (e.g. @r0.1) is still pending
+        type: string
+        default: ''
+      artifact-suffix:
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  fast:
+    name: Fast checks
+    if: inputs.suite == 'fast' || inputs.suite == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - name: Unit, component and integration tests (with coverage, information only)
+        run: npm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: node scripts/coverage-summary.mjs >> "$GITHUB_STEP_SUMMARY"
+      - run: npm run build
+
+  acceptance:
+    name: Acceptance (${{ inputs.projects }})
+    needs: fast
+    if: always() && (inputs.suite == 'acceptance' || (inputs.suite == 'all' && needs.fast.result == 'success'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PW_TIER2: ${{ (inputs.projects == 'tier2' || inputs.projects == 'all') && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          browsers: ${{ (inputs.projects == 'tier2' || inputs.projects == 'all') && 'chromium firefox webkit' || 'chromium' }}
+      - name: Select projects
+        id: projects
+        run: |
+          case "${{ inputs.projects }}" in
+            tier1) echo "args=--project=chromium-desktop --project=chromium-android" >> "$GITHUB_OUTPUT" ;;
+            tier2) echo "args=--project=tier2-firefox --project=tier2-webkit" >> "$GITHUB_OUTPUT" ;;
+            all)   echo "args=" >> "$GITHUB_OUTPUT" ;;
+            *)     echo "args=--project=${{ inputs.projects }}" >> "$GITHUB_OUTPUT" ;;
+          esac
+      - name: Run feature files
+        env:
+          GREP: ${{ inputs.grep }}
+          REPEAT: ${{ inputs.repeat-each }}
+        run: |
+          npm run gen:audio
+          npx bddgen
+          args=(${{ steps.projects.outputs.args }} --repeat-each="$REPEAT")
+          if [ -n "$GREP" ]; then args+=(--grep "$GREP"); fi
+          npx playwright test "${args[@]}"
+        continue-on-error: ${{ inputs.projects == 'tier2' }}
+      - name: Traceability and flaky report
+        if: always()
+        env:
+          REQUIRE_COMPLETE: ${{ inputs.require-complete }}
+        run: node scripts/traceability-report.mjs >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: acceptance-report${{ inputs.artifact-suffix }}
+          path: |
+            playwright-report
+            reports
+          retention-days: 14
