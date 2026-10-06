@@ -15,6 +15,7 @@ executed as acceptance tests with **playwright-bdd** (see ADR-001 in docs/05-arc
 |-----|---------|
 | `@r0.1`, `@r0.2`, ... | Release the scenario belongs to |
 | `@manual` | Not automated (excluded from test runs). The comment above it says when to run it |
+| `@smoke` | Quick check that also runs against the live site after every deploy |
 | `@nfr` | Scenario checks a non-functional requirement (see docs/04-nfr.md) |
 
 Writing style: see [docs/00-roadmap.md](../docs/00-roadmap.md#writing-style-for-acceptance-criteria).

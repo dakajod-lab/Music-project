@@ -1,0 +1,68 @@
+# Pipeline 5: create a release. Started by hand; checks the impact analysis and runs the full test suite first.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, e.g. 0.0.1 or 0.1.0 (a file docs/releases/<version>.md must exist)'
+        type: string
+        required: true
+      require-complete:
+        description: 'Fail if scenarios with this tag are still pending (e.g. @r0.1). Empty = no check'
+        type: string
+        default: ''
+      prerelease:
+        type: boolean
+        default: true
+
+run-name: 'Release ${{ inputs.version }}'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Impact analysis and version check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check version, release notes and impact analysis
+        env:
+          VERSION: ${{ inputs.version }}
+        run: node scripts/release-preflight.mjs "$VERSION"
+
+  tests:
+    needs: preflight
+    uses: ./.github/workflows/_tests.yml
+    with:
+      suite: all
+      projects: tier1
+      require-complete: ${{ inputs.require-complete }}
+      artifact-suffix: -release
+
+  release:
+    needs: tests
+    runs-on: ubuntu-latest
+    environment: release # add required reviewers in Settings → Environments to get an approval step
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: acceptance-report-release
+          path: release-assets
+      - name: Create tag and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          (cd release-assets && zip -qr ../test-report.zip .)
+          flags=""
+          if [ "$PRERELEASE" = "true" ]; then flags="--prerelease"; fi
+          gh release create "v$VERSION" test-report.zip \
+            --title "v$VERSION" \
+            --notes-file "docs/releases/$VERSION.md" \
+            --target "$GITHUB_SHA" $flags

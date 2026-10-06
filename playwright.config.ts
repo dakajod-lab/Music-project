@@ -30,6 +30,9 @@ const tier2 = process.env.PW_TIER2
     ]
   : [];
 
+// BASE_URL is set when testing an already deployed app (smoke test after deploy); then no local server is started.
+const deployedUrl = process.env.BASE_URL;
+
 export default defineConfig({
   testDir,
   grepInvert: /@manual/,
@@ -39,7 +42,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }], ['json', { outputFile: 'reports/acceptance.json' }]],
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: deployedUrl ?? 'http://localhost:4173',
     trace: 'retain-on-failure',
   },
   projects: [
@@ -48,9 +51,11 @@ export default defineConfig({
     { name: 'chromium-android', use: { ...devices['Pixel 7'], launchOptions: chromiumLaunch } },
     ...tier2,
   ],
-  webServer: {
-    command: 'npm run build && npm run preview',
-    url: 'http://localhost:4173',
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: deployedUrl
+    ? undefined
+    : {
+        command: 'npm run build && npm run preview',
+        url: 'http://localhost:4173',
+        reuseExistingServer: !process.env.CI,
+      },
 });

@@ -1,0 +1,38 @@
+# Pipeline 4: slow measurements. Reports only; never blocks anything.
+name: Nightly
+
+on:
+  schedule:
+    - cron: '17 2 * * *' # every night 02:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flaky-hunt:
+    name: Flaky hunt (10x Tier 1)
+    uses: ./.github/workflows/_tests.yml
+    with:
+      suite: acceptance
+      projects: tier1
+      repeat-each: 10
+      artifact-suffix: -flaky-hunt
+
+  tier2:
+    name: Tier 2 browsers
+    uses: ./.github/workflows/_tests.yml
+    with:
+      suite: acceptance
+      projects: tier2
+      artifact-suffix: -tier2
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm audit --audit-level=high
+
+  # Mutation testing (Stryker) is added in step 7.3.

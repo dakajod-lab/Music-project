@@ -17,6 +17,7 @@ They are the single source of truth and run as acceptance tests. This page is on
 | REC-006 | Screen stays on while recording (R3) | 0.1 | [recording.feature](../features/recording.feature) |
 | STO-001 | Recording is kept on the device | 0.1 | [storage.feature](../features/storage.feature) |
 | NFR-A11Y-001 | WCAG 2.2 AA (automated scan) | 0.1 | [accessibility.feature](../features/accessibility.feature) |
+| NFR-SEC-002 | Served over HTTPS (secure context) | 0.1 | [security.feature](../features/security.feature) |
 | PLY-001 | Play back a recording | 0.1 | [playback.feature](../features/playback.feature) |
 | EXP-001 | Export as WAV | 0.1 | [export.feature](../features/export.feature) |
 
