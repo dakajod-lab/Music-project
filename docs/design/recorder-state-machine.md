@@ -1,6 +1,6 @@
 # Recorder state machine (ADR-007)
 
-_Status: **Proposal** for step 7.4._
+_Status: **Agreed** (2026-10-06). Implemented in `src/core/recorder/`._
 
 The recorder is a pure function `transition(state, event) → state` with an explicit table of allowed transitions.
 It knows nothing about the browser: adapters (microphone, clock, storage) send it events, and the UI shows its state.
@@ -51,3 +51,10 @@ These "ignored" cells are tested too: e.g. a double tap on stop must not break a
 | REC-002.1 Stop automatically at 5:00 | ✅ tested with a **fake clock** (no 5-minute wait) |
 | REC-004 Replace confirmation | State machine only; UI in a later step |
 | REC-003, REC-005, REC-006, STO, PLY, EXP | Later steps |
+
+## Decisions
+| Date | Decision | Reason |
+|------|----------|--------|
+| 2026-10-06 | Input level before recording (REC-005.3) via a separate "check level" action; the microphone is never opened on app start. | Privacy: no microphone indicator while the app is idle. Recording itself still starts immediately. |
+| 2026-10-06 | Hand-written state machine, no library. | Small, readable, every line mutation-tested. |
+| 2026-10-06 | 7.4 scope: REC-001 + REC-002 end to end; full state machine unit-tested. | Reviewable PR size. |

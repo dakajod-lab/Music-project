@@ -2,7 +2,7 @@
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "_comment": "Command runner instead of the vitest runner: @stryker-mutator/vitest-runner 10.0 runs 0 tests per mutant with Vitest 5 (every mutant 'survives'). Revisit when the runner supports Vitest 5.",
   "testRunner": "command",
-  "commandRunner": { "command": "npx vitest run src/core --reporter=dot" },
+  "commandRunner": { "command": "npx vitest run src/core tests/integration --reporter=dot" },
   "coverageAnalysis": "off",
   "mutate": ["src/core/**/*.ts", "!src/core/**/*.test.ts"],
   "reporters": ["clear-text", "progress", "html", "json"],
