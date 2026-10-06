@@ -1,6 +1,6 @@
 # 05 — Architecture & Decisions
 
-_Status: **In review**. ADR-001, 003, 004 agreed; ADR-008 waiting for the repository to be made public._
+_Status: **Agreed v1.0** (2026-10-06)._
 
 ## Overview
 
@@ -62,7 +62,7 @@ TypeScript strict mode + ESLint as static checks.
 | `[BeforeScenario]` / `[AfterScenario]` hooks | `Before` / `After` hooks, or fixtures |
 | `@tag` filtering in the test runner | `npx bddgen && npx playwright test --grep @r0.1` |
 
-## ADR-002: Client-only web app (PWA), no backend in v1 — proposal
+## ADR-002: Client-only web app (PWA), no backend in v1 — ✅ agreed 2026-10-06
 - **Context:** No sync in v1 (manual file transfer), audio must stay on the device (NFR-SEC-001), no analytics.
 - **Decision:** The app runs completely in the browser and is served as static files over HTTPS.
 - **Consequences:** No server, database or login to build, host or test. A backend can be added later (cloud inbox, Option B).
@@ -92,14 +92,14 @@ TypeScript strict mode + ESLint as static checks.
   - Exact sample positions, needed for track alignment in 0.2 (R1).
   - More code than MediaRecorder; the WAV encoder must be written and tested (Core, unit tests).
 
-## ADR-005: Storage = IndexedDB, saved in chunks of ~1 s — proposal
+## ADR-005: Storage = IndexedDB, saved in chunks of ~1 s — ✅ agreed 2026-10-06
 - **Context:** Recordings must survive reload/close/crash (STO-001, REC-003) with ≤ 2 s loss.
 - **Decision:** Store audio in IndexedDB in chunks of about 1 second while recording. Ask the browser for persistent
   storage (`navigator.storage.persist()`, R12).
 - **Consequences:** Worst case after a crash is about 1 s lost, within the 2 s limit. Recovery on start-up must
   rebuild a recording from its chunks (tested with crash simulation, R3/R4).
 
-## ADR-006: Ports & adapters for testability — proposal
+## ADR-006: Ports & adapters for testability — ✅ agreed 2026-10-06
 - **Context:** Many risks (R3, R4, R9, R11, R12) depend on browser/device events that tests must be able to trigger.
 - **Decision:** Core logic never calls browser APIs directly. It talks to interfaces ("ports"):
   `AudioInput`, `RecordingStore`, `WakeLock`, `FileExporter`, `Clock`. Real implementations ("adapters") wrap the browser;
@@ -107,14 +107,14 @@ TypeScript strict mode + ESLint as static checks.
 - **Consequences:** Most behaviour can be tested in milliseconds without a browser. A fake `Clock` makes the
   5-minute limit testable without waiting 5 minutes.
 
-## ADR-007: Recorder as an explicit state machine — proposal
+## ADR-007: Recorder as an explicit state machine — ✅ agreed 2026-10-06
 - **Context:** Recording has many states and events (idle, asking permission, recording, interrupted, full storage, ...).
   Bugs hide in unexpected transitions.
 - **Decision:** Model the recorder as an explicit state machine with a table of allowed transitions.
 - **Consequences:** Enables **state transition testing**: every state × event combination can be tested, including
   invalid ones (e.g. "stop" while idle). The state diagram doubles as documentation.
 
-## ADR-008: Hosting = GitHub Pages, public repository — ⏳ agreed, waiting for repo to be made public
+## ADR-008: Hosting = GitHub Pages, public repository — ✅ agreed 2026-10-06 (repo made public)
 - **Context:** Everything should be in one place. GitHub Pages is free for **public** repositories
   (private ones need a paid plan). Microphone access requires HTTPS (NFR-SEC-002), which GitHub Pages provides.
 - **Decision:** Make the repository public and deploy with GitHub Actions to GitHub Pages.
