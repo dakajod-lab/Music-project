@@ -1,6 +1,6 @@
 # 06 — Test Strategy
 
-_Status: **Proposal v0.1**. Values marked ❓ need the product owner's decision._
+_Status: **Agreed v1.0** (2026-10-06)._
 
 ## 1. Purpose
 This strategy describes **how** we gain confidence that the app meets its requirements
@@ -15,8 +15,9 @@ It supports the quality goals Q1–Q4 in the [business case](01-business-case.md
 | P3 | No manual steps without a clear pass/fail. Subjective areas use exploratory charters with concrete observations. | 2026-10-05 |
 | P4 | Automate the app's *reaction* to device events; check on the real device that the device *really sends* those events. | 2026-10-05 |
 | P5 | Big acceptance test first, then trust the automation (see §8). | 2026-10-05 |
-| P6 | Every bug gets an automated regression test before it is closed. | 2026-10-05 |
-| P7 | A flaky test is a bug. It is fixed or deleted, never ignored by re-running until green. | proposal |
+| P6 | Every bug gets an automated regression test before it is closed. | 2026-10-06 |
+| P7 | A flaky test is a **signal to investigate**, never something to re-run until green. See §12. | 2026-10-06 |
+| P8 | Coverage and mutation score are **information, not targets**. No fixed thresholds. See §7. | 2026-10-06 |
 
 ## 3. Test levels
 | Level | What | Tool | Runs | Location |
@@ -67,16 +68,19 @@ A pull request can only be merged when all gates pass.
 |------|-----------|
 | Type check + lint | 0 errors |
 | Unit / integration / component tests | 100 % pass |
-| Line + branch coverage on **Core** | ≥ 90 % ❓ |
+| Line + branch coverage on **Core** | **Reported only** (P8) |
 | Acceptance tests, Tier 1 (Chromium desktop + Android phone emulation) | 100 % pass |
 | Acceptance tests, Tier 2 (Firefox, WebKit) | Reported, **not blocking** (NFR-CMP-003) |
 | Accessibility (axe) | 0 serious / critical violations |
 | Traceability | Every non-manual scenario has a passing test |
 | Dependencies | 0 high / critical vulnerabilities (`npm audit`) |
-| **Mutation score** on Core (Stryker) | ≥ 80 % ❓, blocking ❓ |
+| **Mutation score** on Core (Stryker) | **Reported only** (P8) |
 
-Coverage is a gate but **not the goal**: it only shows that code ran. Mutation testing shows whether the tests
-actually *notice* when the code is wrong.
+**Why coverage and mutation score are not gates (P8):** a fixed percentage invites tests that exist only to
+reach the number and add no value. Coverage only shows that code *ran*. Instead:
+- Both numbers are shown on every pull request, so changes in trend are visible in review.
+- **Low** coverage is used as a pointer: "this area is untested, is that a risk?" **High** coverage proves little.
+- Surviving mutants (Stryker) are reviewed: each one is either a missing test that matters, or accepted on purpose.
 
 ## 8. Release testing (P5)
 1. **Impact analysis** per release: which features, adapters and platform versions changed? (checklist in the PR template)
@@ -101,8 +105,27 @@ actually *notice* when the code is wrong.
 Requirement coverage · mutation score · coverage on Core · open bugs per severity · bugs found by level
 (unit / acceptance / exploratory / production) · flaky test count.
 
-## Open questions
-1. Coverage threshold on Core: **90 %** OK?
-2. Mutation score threshold: **80 %**? Blocking from the start, or reported only until we see real numbers?
-3. P7 flaky-test policy: agree?
-4. Definition of Done: anything missing?
+## 12. Flaky tests (P7)
+A flaky test passes and fails on the same code. The flakiness itself tells us something, so it is investigated, not hidden.
+
+1. **Record it:** a GitHub Issue with label `flaky`, including failing runs and logs.
+2. **Find the root cause.** It is one of three kinds:
+
+| Root cause | Example | Action |
+|------------|---------|--------|
+| **The test is badly written** | Waits a fixed 500 ms instead of waiting for a state | Fix the test |
+| **The test approach is wrong** | Timing measured in a real browser on a busy CI machine; a level that cannot be deterministic | Redesign: lower test level, fake clock, different technique |
+| **The product has a real bug** | A race condition between saving a chunk and stopping a recording | Fix the product: a normal bug with severity (P6) |
+
+In an audio/timing app the third kind is especially likely and important (R1, R4), so it is checked first, not last.
+
+3. **Automatic retries never hide flakiness:** if CI retries a test and it then passes, it is reported as flaky.
+4. **Quarantine** (temporarily excluding the test from the gate) is only allowed with a linked issue and only while
+   the root cause is being investigated. **Deleting** a test is only allowed when what it checks is covered elsewhere.
+
+## Decision log
+| Date | Decision | Reason |
+|------|----------|--------|
+| 2026-10-06 | Test levels, techniques, test data and Definition of Done agreed. | Owner review. |
+| 2026-10-06 | No fixed coverage or mutation thresholds; both are reported (P8). | Fixed percentages lead to tests that add no value. |
+| 2026-10-06 | Flaky tests are investigated for root cause (test, approach or product); no blind delete/disable (P7). | Owner: flakiness can point at a wrong method or a real product bug. |

@@ -13,7 +13,7 @@ We work through each phase together. A phase is only "Done" when its document is
 | 4 | Non-functional requirements (performance, devices, a11y, privacy) | [04-nfr.md](04-nfr.md) | ✅ Agreed v1.0 |
 | 4b | Risk workshop (in-depth review of R1–R7, likelihood × impact) | [04b-risk-register.md](04b-risk-register.md) | ✅ Agreed v1.0 |
 | 5 | Architecture & tech stack decisions (ADRs) | [05-architecture.md](05-architecture.md) | ✅ Agreed v1.0 |
-| 6 | Test strategy (levels, tools, risk-based priorities) | [06-test-strategy.md](06-test-strategy.md) | Proposal |
+| 6 | Test strategy (levels, tools, risk-based priorities) | [06-test-strategy.md](06-test-strategy.md) | ✅ Agreed v1.0 |
 | 7 | Code skeleton + first tests | `/src`, `/tests` | Not started |
 | 8 | CI/CD pipeline & quality gates | 08-ci-cd.md | Not started |
 | 9 | Deployment & release | 09-deployment.md | Not started |
