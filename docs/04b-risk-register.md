@@ -125,7 +125,8 @@ Covered by REC-003, STO-001, R3's automated simulations (crash, freeze, storage 
 
 ### R5: Export does not import correctly — ✅ agreed, score 6
 Export is **mono** (phone microphones are mono; stereo only doubles the size).
-Tests: unit test parses the WAV header (48 kHz, 24-bit, mono, length); round-trip test compares exported samples with the recording;
+Tests: unit test parses the WAV header (48 kHz, 24-bit, mono, length); round-trip test compares exported samples with the recording
+(implemented in step 7.3: `src/core/wav/encodeWav.test.ts`, mutation score 95.8 %, 2 reviewed equivalent survivors);
 manual Ableton check (`@manual`, EXP-001.3) when the impact analysis requires it.
 
 ### R9: Microphone permission flow — ✅ agreed, score 6

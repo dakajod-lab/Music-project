@@ -10,14 +10,14 @@ They share one reusable test workflow (`_tests.yml`), so every pipeline runs the
 | 1 | **PR / Fast checks** | `pr.yml` | Every push to a pull request | Type check, lint, format, unit/integration tests (+ coverage info), build | Merge |
 | 2 | **PR / Acceptance** | `pr.yml` | After pipeline 1 is green | Feature files in Tier 1, axe, traceability + flaky report | Merge |
 | 3 | **Deploy** | `deploy.yml` | Merge to `main` (or by hand) | All tests → build → GitHub Pages → `@smoke` scenarios against the **live URL** | — (red = live site broken) |
-| 4 | **Nightly** | `nightly.yml` | Every night 02:17 UTC (or by hand) | Flaky hunt (Tier 1 × 10), Tier 2 browsers, `npm audit`; mutation testing from step 7.3 | Never (reports only) |
+| 4 | **Nightly** | `nightly.yml` | Every night 02:17 UTC (or by hand) | Flaky hunt (Tier 1 × 10), Tier 2 browsers, `npm audit`, mutation testing (Stryker) | Never (reports only) |
 | 5 | **Release** | `release.yml` | By hand, with a version number | Preflight (version, tag, impact analysis in `docs/releases/<version>.md`) → all tests → GitHub release with test report | Needs approval if the `release` environment has reviewers |
 | 6 | **Manual test run** | `manual.yml` | By hand | Any suite, any branch, any browser, filter by tag/ID, repeat N times | Never |
 
 ## How to run tests by hand (pipeline 6)
 GitHub → **Actions** → **Manual test run** → **Run workflow**:
 - **Use workflow from:** the branch to test (e.g. a feature branch before it has a PR)
-- **Which tests:** `fast`, `acceptance` or `all`
+- **Which tests:** `fast`, `acceptance`, `mutation` or `all`
 - **Only scenarios matching:** e.g. `@r0.1`, `@smoke`, `REC-001.2`, or empty for all
 - **Which browsers:** `tier1`, one project, `tier2` or `all`
 - **Repeat every test N times:** e.g. `20` to investigate a flaky test

@@ -7,3 +7,4 @@ reports
 package-lock.json
 tests/fixtures/audio
 *.md
+.stryker-tmp
