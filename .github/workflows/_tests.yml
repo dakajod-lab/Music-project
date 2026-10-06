@@ -88,7 +88,7 @@ jobs:
         env:
           REQUIRE_COMPLETE: ${{ inputs.require-complete }}
         run: node scripts/traceability-report.mjs >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: acceptance-report${{ inputs.artifact-suffix }}
@@ -109,7 +109,7 @@ jobs:
       - name: Mutation summary
         if: always()
         run: node scripts/mutation-summary.mjs >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: mutation-report${{ inputs.artifact-suffix }}
