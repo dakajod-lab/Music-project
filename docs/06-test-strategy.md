@@ -81,6 +81,9 @@ reach the number and add no value. Coverage only shows that code *ran*. Instead:
 - Both numbers are shown on every pull request, so changes in trend are visible in review.
 - **Low** coverage is used as a pointer: "this area is untested, is that a risk?" **High** coverage proves little.
 - Surviving mutants (Stryker) are reviewed: each one is either a missing test that matters, or accepted on purpose.
+- **Equivalent mutants** (a change that cannot alter behaviour) are documented with a code comment, but **not**
+  switched off with `// Stryker disable`: that switches off *every* mutant of that kind on the line, including real ones.
+  They stay visible as survivors in the nightly report.
 
 ## 8. Release testing (P5)
 1. **Impact analysis** per release: which features, adapters and platform versions changed? (checklist in the PR template)
@@ -131,3 +134,5 @@ In an audio/timing app the third kind is especially likely and important (R1, R4
 | 2026-10-06 | No fixed coverage or mutation thresholds; both are reported (P8). | Fixed percentages lead to tests that add no value. |
 | 2026-10-06 | Flaky tests are investigated for root cause (test, approach or product); no blind delete/disable (P7). | Owner: flakiness can point at a wrong method or a real product bug. |
 | 2026-10-06 | One automatic retry in CI is allowed, as long as retried passes are reported as flaky. | More data on flaky tests helps find the root cause. |
+| 2026-10-06 | Equivalent mutants are documented, never disabled. | A disable comment hid two real mutants on the WAV encoder (step 7.3). |
+| 2026-10-06 | Stryker uses the command runner (`vitest run src/core` per mutant). | `@stryker-mutator/vitest-runner` 10.0 ran 0 tests per mutant with Vitest 5, so every mutant falsely survived. |

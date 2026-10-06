@@ -35,4 +35,9 @@ jobs:
       - uses: ./.github/actions/setup
       - run: npm audit --audit-level=high
 
-  # Mutation testing (Stryker) is added in step 7.3.
+  mutation:
+    name: Mutation testing
+    uses: ./.github/workflows/_tests.yml
+    with:
+      suite: mutation
+      artifact-suffix: -nightly

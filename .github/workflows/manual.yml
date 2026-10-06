@@ -9,7 +9,7 @@ on:
       suite:
         description: Which tests
         type: choice
-        options: [all, fast, acceptance]
+        options: [all, fast, acceptance, mutation]
         default: acceptance
       grep:
         description: 'Only scenarios matching (e.g. @r0.1, @smoke, REC-001.2). Empty = all'

@@ -8,3 +8,4 @@ reports
 tests/fixtures/audio/*.wav
 *.local
 .DS_Store
+.stryker-tmp

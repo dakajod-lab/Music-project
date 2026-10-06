@@ -5,7 +5,7 @@ on:
   workflow_call:
     inputs:
       suite:
-        description: 'fast | acceptance | all'
+        description: 'fast | acceptance | mutation | all'
         type: string
         default: all
       grep:
@@ -95,4 +95,23 @@ jobs:
           path: |
             playwright-report
             reports
+          retention-days: 14
+
+  mutation:
+    name: Mutation testing
+    if: inputs.suite == 'mutation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm run test:mutation
+      - name: Mutation summary
+        if: always()
+        run: node scripts/mutation-summary.mjs >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report${{ inputs.artifact-suffix }}
+          path: reports/mutation
           retention-days: 14

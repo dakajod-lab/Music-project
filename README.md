@@ -21,6 +21,7 @@ npm run dev                       # app at http://localhost:5173
 | `npm test` | Unit, component and integration tests (Vitest) |
 | `npm run test:coverage` | Same, with a coverage report in `coverage/` (information only, see P8) |
 | `npm run test:acceptance` | Generates test audio, then runs all feature files in Chromium (desktop + Android emulation) |
+| `npm run test:mutation` | Mutation testing on `src/core` (Stryker); HTML report in `reports/mutation/` |
 | `npm run gen:audio` | Generates the deterministic test audio in `tests/fixtures/audio/` |
 
 Acceptance test options:
