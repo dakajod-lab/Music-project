@@ -70,6 +70,28 @@ function verdict(entry) {
   return 'passed';
 }
 
+/** Requirement IDs from the docs (functional index + NFR tables), with how each one is verified. */
+function readRequirements() {
+  const requirements = new Map();
+  const add = (file, column) => {
+    if (!existsSync(file)) return;
+    for (const line of readFileSync(file, 'utf8').split('\n')) {
+      const cells = line.split('|').map((c) => c.trim());
+      const id = cells[1];
+      if (/^(?:[A-Z][A-Z0-9]*-)+\d{3}$/.test(id ?? '')) {
+        requirements.set(id, {
+          id,
+          title: cells[2] ?? '',
+          verifiedBy: column ? (cells[column] ?? '') : 'Feature file',
+        });
+      }
+    }
+  };
+  add('docs/03-requirements.md', null);
+  add('docs/04-nfr.md', 4);
+  return requirements;
+}
+
 const scenarios = readScenarios();
 const results = readResults();
 const projects = [...new Set([...results.values()].flatMap((m) => [...m.keys()]))].sort();
@@ -117,6 +139,19 @@ if (flaky.length)
 console.log(`| ID | Scenario | Tags | ${projects.length ? projects.join(' | ') : 'Result'} |`);
 console.log(`|----|----------|------|${(projects.length ? projects : ['']).map(() => '---').join('|')}|`);
 console.log(rows.join('\n'));
+// Requirements that have no scenario at all are invisible above, so list them explicitly.
+const withoutScenario = [...readRequirements().values()].filter(
+  (r) => ![...scenarios.keys()].some((id) => id.startsWith(`${r.id}.`)),
+);
+if (withoutScenario.length) {
+  console.log(`\n### Requirements without a scenario (${withoutScenario.length})\n`);
+  console.log(
+    'Not pending, but absent from `/features`. Fine when verified another way (manual, design review); otherwise a gap.\n',
+  );
+  console.log('| Requirement | Description | Verified by |\n|---|---|---|');
+  for (const r of withoutScenario) console.log(`| ${r.id} | ${r.title} | ${r.verifiedBy} |`);
+}
+
 if (requireTag) {
   console.log(
     incomplete.length

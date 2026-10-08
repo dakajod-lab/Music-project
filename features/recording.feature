@@ -85,9 +85,9 @@ Feature: Recording (REC)
       Given a recording is in progress
       Then the current input level is shown
 
-    Scenario: REC-005.3 Input level is shown before recording
-      Given microphone access is granted
-      And no recording is in progress
+    Scenario: REC-005.3 Input level can be checked before recording
+      Given no recording is in progress
+      When the user checks the input level
       Then the current input level is shown
 
     Scenario: REC-005.2 Clipping is indicated

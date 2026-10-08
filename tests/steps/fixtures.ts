@@ -1,4 +1,4 @@
-import { type Page, expect } from '@playwright/test';
+import { type Page, type Request, expect } from '@playwright/test';
 import { test as base, createBdd } from 'playwright-bdd';
 
 export type MicMode = 'real' | 'denied' | 'none';
@@ -8,8 +8,14 @@ export class AppDriver {
   micMode: MicMode = 'real';
   private opened = false;
   oldRecordingLength: string | null = null;
+  /** Every network request the page makes, from the first navigation on (NFR-SEC-001/003). */
+  readonly requests: Request[] = [];
+  /** Time between starting navigation and the start button being usable (NFR-PERF-001). */
+  readyAfterMs: number | null = null;
 
-  constructor(readonly page: Page) {}
+  constructor(readonly page: Page) {
+    page.on('request', (request) => this.requests.push(request));
+  }
 
   get isOpen(): boolean {
     return this.opened;
@@ -32,7 +38,10 @@ export class AppDriver {
     }, this.micMode);
     // Controllable clock (REC-002): runs in real time until a step fast-forwards it.
     await this.page.clock.install();
+    const navigationStarted = Date.now();
     await this.page.goto('./');
+    await expect(this.button('Start recording')).toBeEnabled();
+    this.readyAfterMs = Date.now() - navigationStarted;
     await this.page.clock.resume();
   }
 
