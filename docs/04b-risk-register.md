@@ -133,6 +133,11 @@ manual Ableton check (`@manual`, EXP-001.3) when the impact analysis requires it
 Tests: Playwright grants/denies permission per test (REC-001.3/.4), permission withdrawn while the app is open,
 app opened without HTTPS. Manual check on the reference phone in the first acceptance test (P5).
 
+**Test environment limit (found in step 7.4):** Chromium's fake-microphone flag reports the permission as already
+*granted*, so "access never requested" cannot be set up in CI. REC-001.3 therefore checks the app's side (it does not
+request the microphone before the user starts recording). The browser's real permission prompt is a **manual** check on
+the reference phone.
+
 ### Workshop summary
 Owner: *"The main focus is ease of use and quick recording with high enough quality to play with in Ableton. The risks cover this well."*
 
