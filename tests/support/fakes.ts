@@ -1,4 +1,4 @@
-import type { AudioInput, AudioSession, Clock } from '../../src/core/ports';
+import type { AudioInput, AudioOutput, AudioSession, Clock, Playback } from '../../src/core/ports';
 import { MicrophoneError, type MicrophoneProblem } from '../../src/core/ports';
 
 /** Manually advanced clock: lets tests "wait" 5 minutes in a few milliseconds. */
@@ -32,7 +32,10 @@ export class FakeClock implements Clock {
   }
 }
 
-/** Fake microphone: produces one sample per 1/sampleRate of fake-clock time, value 0.25. */
+/**
+ * Fake microphone. The recording contains one sample (value 0.25) per 1/sampleRate of fake-clock time
+ * between beginRecording() and stop(). Level blocks are pushed by the test with emit().
+ */
 export class FakeAudioInput implements AudioInput {
   problem: MicrophoneProblem | null = null;
   /** Any other error the browser might throw. */
@@ -40,7 +43,9 @@ export class FakeAudioInput implements AudioInput {
   /** When set, start() waits for this promise first (simulates a slow permission prompt). */
   gate: Promise<void> | null = null;
   startCalls = 0;
+  openSessions = 0;
   private endListeners: (() => void)[] = [];
+  private sampleListeners: ((samples: Float32Array) => void)[] = [];
 
   constructor(
     private readonly clock: FakeClock,
@@ -52,20 +57,62 @@ export class FakeAudioInput implements AudioInput {
     if (this.gate) await this.gate;
     if (this.unexpectedError) throw this.unexpectedError;
     if (this.problem) throw new MicrophoneError(this.problem);
-    const startedAt = this.clock.now();
+    this.openSessions++;
+    let recordingSince: number | null = null;
     this.endListeners = [];
+    this.sampleListeners = [];
     return {
       sampleRate: this.sampleRate,
       onEnded: (listener) => this.endListeners.push(listener),
+      onSamples: (listener) => this.sampleListeners.push(listener),
+      beginRecording: () => {
+        recordingSince = this.clock.now();
+      },
       stop: async () => {
-        const length = Math.round(((this.clock.now() - startedAt) / 1000) * this.sampleRate);
+        this.openSessions--;
+        if (recordingSince === null) return new Float32Array(0);
+        const length = Math.round(((this.clock.now() - recordingSince) / 1000) * this.sampleRate);
         return new Float32Array(length).fill(0.25);
       },
     };
   }
 
+  /** Delivers a block of samples, as the microphone would (level meter input). */
+  emit(...values: number[]): void {
+    const block = Float32Array.from(values);
+    this.sampleListeners.forEach((listener) => listener(block));
+  }
+
   /** Simulates the microphone being taken away (phone call, unplugged). */
   end(): void {
     this.endListeners.forEach((listener) => listener());
+  }
+}
+
+/** Fake speaker: playback position follows the fake clock; the test decides when it ends. */
+export class FakeAudioOutput implements AudioOutput {
+  played: Float32Array[] = [];
+  playing = false;
+  private endedListener: (() => void) | null = null;
+
+  constructor(private readonly clock: FakeClock) {}
+
+  async play(samples: Float32Array, _sampleRate: number, onEnded: () => void): Promise<Playback> {
+    const startedAt = this.clock.now();
+    this.played.push(samples);
+    this.playing = true;
+    this.endedListener = onEnded;
+    return {
+      positionMs: () => this.clock.now() - startedAt,
+      stop: () => {
+        this.playing = false;
+      },
+    };
+  }
+
+  /** Simulates playback reaching the end of the recording. */
+  finish(): void {
+    this.playing = false;
+    this.endedListener?.();
   }
 }
