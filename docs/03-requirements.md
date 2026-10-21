@@ -13,11 +13,17 @@ They are the single source of truth and run as acceptance tests. This page is on
 | REC-002 | Recording time limit | 0.1 | [recording.feature](../features/recording.feature) |
 | REC-003 | Interrupted recording is kept | 0.1 | [recording.feature](../features/recording.feature) |
 | REC-004 | New recording replaces the old one | 0.1 | [recording.feature](../features/recording.feature) |
-| REC-005 | Input level is visible (R11) | 0.1 | [recording.feature](../features/recording.feature) |
+| REC-005 | Input level is visible (R11); before recording via a "check level" action | 0.1 | [recording.feature](../features/recording.feature) |
 | REC-006 | Screen stays on while recording (R3) | 0.1 | [recording.feature](../features/recording.feature) |
 | STO-001 | Recording is kept on the device | 0.1 | [storage.feature](../features/storage.feature) |
 | NFR-A11Y-001 | WCAG 2.2 AA (automated scan) | 0.1 | [accessibility.feature](../features/accessibility.feature) |
+| NFR-SEC-001 | Audio never leaves the device | 0.1 | [security.feature](../features/security.feature) |
 | NFR-SEC-002 | Served over HTTPS (secure context) | 0.1 | [security.feature](../features/security.feature) |
+| NFR-SEC-003 | No tracking or analytics | 0.1 | [security.feature](../features/security.feature) |
+| NFR-A11Y-002 | Everything works with a keyboard | 0.1 | [accessibility.feature](../features/accessibility.feature) |
+| NFR-PERF-001 | Ready to record within 3 s (CI early warning) | 0.1 | [performance.feature](../features/performance.feature) |
+| NFR-PERF-002 | Recording starts within 300 ms | 0.1 | [performance.feature](../features/performance.feature) |
+| NFR-CMP-002 | Screen widths 360–2560 px | 0.1 | [compatibility.feature](../features/compatibility.feature) |
 | PLY-001 | Play back a recording | 0.1 | [playback.feature](../features/playback.feature) |
 | EXP-001 | Export as WAV | 0.1 | [export.feature](../features/export.feature) |
 
@@ -40,3 +46,5 @@ Non-functional requirements (usability, performance, devices, ...) are in [04-nf
 | 2026-10-05 | Added REC-005 (input level and clipping indicator) to 0.1. | Risk R11: distorted recordings make the app useless. |
 | 2026-10-05 | Added REC-005.3 (input level before recording) and REC-006 (screen stays on while recording). | Check the setup without a test take; prevent the most common interruption (R3). |
 | 2026-10-06 | NFRs that can be automated are also written as scenarios in `/features`, tagged `@nfr`. | One place for everything that runs as a test; NFR definitions stay in 04-nfr.md. |
+| 2026-10-08 | REC-005.3 reworded: the level before recording is shown after the user **checks** it, not automatically. | Matches the agreed design (option b: no microphone on app start). The old wording required option a. |
+| 2026-10-08 | Added `@nfr` scenarios for NFR-SEC-001, NFR-SEC-003, NFR-A11Y-002, NFR-PERF-001/002, NFR-CMP-002. | These NFRs said "automated" but had no scenario, so the traceability report could not see them. |
