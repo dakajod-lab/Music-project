@@ -189,6 +189,7 @@ describe('REC-005 input level (core + fake adapters)', () => {
 
   it('REC-005.2 reports clipping and keeps it visible for the hold time', async () => {
     await startRecording();
+    clock.advance(10_000); // not at time 0: "now - lastClip" and "now + lastClip" must differ (mutation testing)
     mic.emit(1, 1, 1);
     expect(recorder.getLevel().clipping).toBe(true);
     clock.advance(CLIPPING_HOLD_MS);
@@ -205,6 +206,27 @@ describe('REC-005 input level (core + fake adapters)', () => {
     await startRecording();
     mic.emit(0.3);
     expect(calls).toBeGreaterThan(0);
+  });
+
+  it('stops notifying level listeners after unsubscribe', async () => {
+    let calls = 0;
+    const unsubscribe = recorder.subscribeLevel(() => calls++);
+    unsubscribe();
+    await startRecording();
+    mic.emit(0.3);
+    expect(calls).toBe(0);
+  });
+
+  it('a clipped run in progress does not carry over to the next recording', async () => {
+    await startRecording();
+    mic.emit(1, 1); // two full-scale samples: not yet clipping
+    recorder.dispatch({ type: 'STOP' });
+    await recorder.settled();
+    recorder.dispatch({ type: 'START' });
+    recorder.dispatch({ type: 'CONFIRM' });
+    await recorder.settled();
+    mic.emit(1); // a third one, in a new recording
+    expect(recorder.getLevel().clipping).toBe(false);
   });
 
   it('resets the level when the recording stops', async () => {
@@ -252,6 +274,19 @@ describe('REC-005.3 checking the level (core + fake adapters)', () => {
     await recorder.settled();
     expect(recorder.getRecording()?.samples).toHaveLength(2 * 48_000);
     expect(mic.openSessions).toBe(0);
+  });
+
+  it('check level → start with an existing recording → confirm records (does not go back to checking)', async () => {
+    await startRecording();
+    clock.advance(1_000);
+    recorder.dispatch({ type: 'STOP' });
+    await recorder.settled();
+    await checkLevel();
+    recorder.dispatch({ type: 'START' });
+    expect(recorder.getState().status).toBe('confirmingReplace');
+    recorder.dispatch({ type: 'CONFIRM' });
+    await recorder.settled();
+    expect(recorder.getState().status).toBe('recording');
   });
 
   it('a microphone interruption during the check closes it', async () => {

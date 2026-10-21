@@ -75,6 +75,7 @@ export class RecorderController {
     // The machine never "re-enters" requestingPermission, so entering it always means: open the microphone.
     if (after.status === 'requestingPermission') this.track(this.openMicrophone());
     if (after.status === 'recording' && before.status !== 'recording') {
+      // Reviewed equivalent mutant (no `?.`): a session always exists when recording starts.
       this.session?.beginRecording();
       this.startTicking();
     }
@@ -124,6 +125,7 @@ export class RecorderController {
     const session = this.session;
     this.session = null;
     this.resetLevel();
+    // Reviewed equivalent mutant (no `?.`): a session always exists while monitoring.
     await session?.stop();
   }
 

@@ -4,6 +4,8 @@
 export const CLIPPING_THRESHOLD = 0.99;
 /** This many full-scale samples in a row means the signal was clipped (a single one is just a peak). */
 export const CLIPPING_RUN = 3;
+/** Samples arrive as 32-bit floats; compare in the same precision so the threshold itself counts (found by mutation testing). */
+const THRESHOLD_F32 = Math.fround(CLIPPING_THRESHOLD);
 
 /** Highest absolute sample value in the block, capped at 1. */
 export function peakLevel(samples: Float32Array): number {
@@ -20,7 +22,7 @@ export class ClippingDetector {
   push(samples: Float32Array): boolean {
     let clipped = false;
     for (const sample of samples) {
-      this.run = Math.abs(sample) >= CLIPPING_THRESHOLD ? this.run + 1 : 0;
+      this.run = Math.abs(sample) >= THRESHOLD_F32 ? this.run + 1 : 0;
       if (this.run >= CLIPPING_RUN) clipped = true;
     }
     return clipped;

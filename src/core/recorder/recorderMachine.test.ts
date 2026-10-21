@@ -262,6 +262,14 @@ describe('REC-005.3 checking the input level (monitoring)', () => {
     expect(transition(monitoringWithRecording, EVENTS.START).status).toBe('confirmingReplace');
   });
 
+  it('CONFIRM after starting from a level check asks for permission to RECORD, not to monitor', () => {
+    const fromCheck = base('confirmingReplace', { intent: 'monitor', hasRecording: true, recordingMs: 2000 });
+    expect(transition(fromCheck, EVENTS.CONFIRM)).toMatchObject({
+      status: 'requestingPermission',
+      intent: 'record',
+    });
+  });
+
   it('stopping the check or an interruption returns to idle and keeps an existing recording', () => {
     const monitoringWithRecording = base('monitoring', { hasRecording: true, recordingMs: 2000 });
     for (const event of [EVENTS.STOP_CHECK, EVENTS.INTERRUPTED]) {

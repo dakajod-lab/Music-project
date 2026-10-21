@@ -78,4 +78,33 @@ describe('PLY-001 playback (core + fake speaker)', () => {
     player.stop();
     expect(calls).toBe(before);
   });
+
+  describe('race conditions (found by mutation testing)', () => {
+    it('the end of an older playback does not stop a newer one', async () => {
+      await player.play(recording);
+      await player.play(recording); // restart
+      speaker.finish(0); // the first playback reports its end late
+      expect(player.getState().status).toBe('playing');
+    });
+
+    it('the end of a stopped playback does not stop the next one', async () => {
+      await player.play(recording);
+      player.stop();
+      await player.play(recording);
+      speaker.finish(0);
+      expect(player.getState().status).toBe('playing');
+    });
+
+    it('stop while the speaker is still starting: nothing plays and nothing ticks', async () => {
+      let release!: () => void;
+      speaker.gate = new Promise((resolve) => (release = resolve));
+      const starting = player.play(recording);
+      player.stop();
+      release();
+      await starting;
+      expect(speaker.playing).toBe(false);
+      expect(player.getState().status).toBe('stopped');
+      expect(clock.activeTimers).toBe(0);
+    });
+  });
 });

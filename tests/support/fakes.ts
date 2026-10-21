@@ -89,30 +89,39 @@ export class FakeAudioInput implements AudioInput {
   }
 }
 
-/** Fake speaker: playback position follows the fake clock; the test decides when it ends. */
+/** Fake speaker: playback position follows the fake clock; the test decides when each playback ends. */
 export class FakeAudioOutput implements AudioOutput {
   played: Float32Array[] = [];
-  playing = false;
-  private endedListener: (() => void) | null = null;
+  /** When set, play() waits for this promise first (simulates a slow audio start). */
+  gate: Promise<void> | null = null;
+  private playbacks: { playing: boolean; onEnded: () => void }[] = [];
 
   constructor(private readonly clock: FakeClock) {}
 
+  /** Whether any playback is still producing sound. */
+  get playing(): boolean {
+    return this.playbacks.some((p) => p.playing);
+  }
+
   async play(samples: Float32Array, _sampleRate: number, onEnded: () => void): Promise<Playback> {
+    if (this.gate) await this.gate;
     const startedAt = this.clock.now();
+    const entry = { playing: true, onEnded };
     this.played.push(samples);
-    this.playing = true;
-    this.endedListener = onEnded;
+    this.playbacks.push(entry);
     return {
       positionMs: () => this.clock.now() - startedAt,
       stop: () => {
-        this.playing = false;
+        entry.playing = false;
       },
     };
   }
 
-  /** Simulates playback reaching the end of the recording. */
-  finish(): void {
-    this.playing = false;
-    this.endedListener?.();
+  /** Simulates a playback reaching its end. Default: the latest one. */
+  finish(index = this.playbacks.length - 1): void {
+    const entry = this.playbacks[index];
+    if (!entry) return;
+    entry.playing = false;
+    entry.onEnded();
   }
 }

@@ -86,7 +86,7 @@ export function transition(state: RecorderState, event: RecorderEvent): Recorder
       if (event.type === 'START') {
         return state.hasRecording
           ? { ...state, status: 'confirmingReplace' }
-          : { ...state, status: 'recording', intent: 'record', elapsedMs: 0, stoppedBy: null };
+          : { ...state, status: 'recording', elapsedMs: 0, stoppedBy: null };
       }
       if (event.type === 'STOP_CHECK' || event.type === 'INTERRUPTED') return { ...state, status: 'idle' };
       return state;

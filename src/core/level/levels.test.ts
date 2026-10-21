@@ -35,6 +35,13 @@ describe('REC-005.2 / R11 clipping detection', () => {
     expect(new ClippingDetector().push(input)).toBe(clipped);
   });
 
+  it('the threshold itself counts, in the 32-bit precision samples arrive in', () => {
+    const atThreshold = Math.fround(CLIPPING_THRESHOLD);
+    const justBelow = atThreshold - 2 ** -24; // the next 32-bit float below
+    expect(new ClippingDetector().push(Float32Array.of(atThreshold, atThreshold, atThreshold))).toBe(true);
+    expect(new ClippingDetector().push(Float32Array.of(justBelow, justBelow, justBelow))).toBe(false);
+  });
+
   it('finds a clipped run that spans two blocks', () => {
     const detector = new ClippingDetector();
     expect(detector.push(block(0, loud, loud))).toBe(false);
