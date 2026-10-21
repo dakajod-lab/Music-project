@@ -29,11 +29,22 @@ export class AppDriver {
       const w = window as unknown as { __micRequests: number };
       w.__micRequests = 0;
       const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      // Volume control between Chromium's fake microphone and the app, so a test can make the input clip.
+      const gain = { value: 1, node: null as GainNode | null };
+      (window as unknown as { __setInputGain: (g: number) => void }).__setInputGain = (g) => {
+        gain.value = g;
+        if (gain.node) gain.node.gain.value = g;
+      };
       navigator.mediaDevices.getUserMedia = async (constraints) => {
         w.__micRequests++;
         if (mode === 'denied') throw new DOMException('Permission denied', 'NotAllowedError');
         if (mode === 'none') throw new DOMException('Requested device not found', 'NotFoundError');
-        return original(constraints);
+        const real = await original(constraints);
+        const context = new AudioContext({ sampleRate: 48_000 });
+        const destination = context.createMediaStreamDestination();
+        gain.node = new GainNode(context, { gain: gain.value });
+        context.createMediaStreamSource(real).connect(gain.node).connect(destination);
+        return destination.stream;
       };
     }, this.micMode);
     // Controllable clock (REC-002): runs in real time until a step fast-forwards it.
@@ -44,6 +55,12 @@ export class AppDriver {
     this.readyAfterMs = Date.now() - navigationStarted;
     await this.page.clock.resume();
   }
+
+  setInputGain = (gain: number) =>
+    this.page.evaluate(
+      (g) => (window as unknown as { __setInputGain: (g: number) => void }).__setInputGain(g),
+      gain,
+    );
 
   micRequests = () =>
     this.page.evaluate(() => (window as unknown as { __micRequests: number }).__micRequests);

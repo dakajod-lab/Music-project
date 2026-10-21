@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { RecorderController } from '../../src/core/recorder/RecorderController';
+import { CLIPPING_HOLD_MS, RecorderController } from '../../src/core/recorder/RecorderController';
 import { MAX_RECORDING_MS } from '../../src/core/recorder/recorderMachine';
 import { FakeAudioInput, FakeClock } from '../support/fakes';
 
@@ -177,5 +177,123 @@ describe('side effects (found by mutation testing)', () => {
     recorder.dispatch({ type: 'STOP' });
     await recorder.settled();
     expect(seen.at(-1)).toBe(true);
+  });
+});
+
+describe('REC-005 input level (core + fake adapters)', () => {
+  it('REC-005.1 reports the peak of the latest block while recording', async () => {
+    await startRecording();
+    mic.emit(0.1, -0.5, 0.2);
+    expect(recorder.getLevel()).toEqual({ peak: 0.5, clipping: false });
+  });
+
+  it('REC-005.2 reports clipping and keeps it visible for the hold time', async () => {
+    await startRecording();
+    clock.advance(10_000); // not at time 0: "now - lastClip" and "now + lastClip" must differ (mutation testing)
+    mic.emit(1, 1, 1);
+    expect(recorder.getLevel().clipping).toBe(true);
+    clock.advance(CLIPPING_HOLD_MS);
+    mic.emit(0.1);
+    expect(recorder.getLevel().clipping).toBe(true); // exactly at the hold time: still shown
+    clock.advance(1);
+    mic.emit(0.1);
+    expect(recorder.getLevel().clipping).toBe(false);
+  });
+
+  it('notifies level listeners', async () => {
+    let calls = 0;
+    recorder.subscribeLevel(() => calls++);
+    await startRecording();
+    mic.emit(0.3);
+    expect(calls).toBeGreaterThan(0);
+  });
+
+  it('stops notifying level listeners after unsubscribe', async () => {
+    let calls = 0;
+    const unsubscribe = recorder.subscribeLevel(() => calls++);
+    unsubscribe();
+    await startRecording();
+    mic.emit(0.3);
+    expect(calls).toBe(0);
+  });
+
+  it('a clipped run in progress does not carry over to the next recording', async () => {
+    await startRecording();
+    mic.emit(1, 1); // two full-scale samples: not yet clipping
+    recorder.dispatch({ type: 'STOP' });
+    await recorder.settled();
+    recorder.dispatch({ type: 'START' });
+    recorder.dispatch({ type: 'CONFIRM' });
+    await recorder.settled();
+    mic.emit(1); // a third one, in a new recording
+    expect(recorder.getLevel().clipping).toBe(false);
+  });
+
+  it('resets the level when the recording stops', async () => {
+    await startRecording();
+    mic.emit(1, 1, 1);
+    recorder.dispatch({ type: 'STOP' });
+    await recorder.settled();
+    expect(recorder.getLevel()).toEqual({ peak: 0, clipping: false });
+  });
+});
+
+describe('REC-005.3 checking the level (core + fake adapters)', () => {
+  async function checkLevel() {
+    recorder.dispatch({ type: 'CHECK_LEVEL' });
+    await recorder.settled();
+  }
+
+  it('opens the microphone and shows the level without recording', async () => {
+    await checkLevel();
+    expect(recorder.getState().status).toBe('monitoring');
+    mic.emit(0.25);
+    expect(recorder.getLevel().peak).toBe(0.25);
+    clock.advance(5_000);
+    expect(recorder.getState().elapsedMs).toBe(0);
+    expect(clock.activeTimers).toBe(0);
+  });
+
+  it('stopping the check closes the microphone and resets the level', async () => {
+    await checkLevel();
+    mic.emit(1, 1, 1);
+    recorder.dispatch({ type: 'STOP_CHECK' });
+    await recorder.settled();
+    expect(mic.openSessions).toBe(0);
+    expect(recorder.getLevel()).toEqual({ peak: 0, clipping: false });
+  });
+
+  it('recording straight from the check reuses the microphone and keeps only audio after the start', async () => {
+    await checkLevel();
+    clock.advance(4_000); // checking for 4 s: not part of the recording
+    recorder.dispatch({ type: 'START' });
+    await recorder.settled();
+    expect(mic.startCalls).toBe(1);
+    clock.advance(2_000);
+    recorder.dispatch({ type: 'STOP' });
+    await recorder.settled();
+    expect(recorder.getRecording()?.samples).toHaveLength(2 * 48_000);
+    expect(mic.openSessions).toBe(0);
+  });
+
+  it('check level → start with an existing recording → confirm records (does not go back to checking)', async () => {
+    await startRecording();
+    clock.advance(1_000);
+    recorder.dispatch({ type: 'STOP' });
+    await recorder.settled();
+    await checkLevel();
+    recorder.dispatch({ type: 'START' });
+    expect(recorder.getState().status).toBe('confirmingReplace');
+    recorder.dispatch({ type: 'CONFIRM' });
+    await recorder.settled();
+    expect(recorder.getState().status).toBe('recording');
+  });
+
+  it('a microphone interruption during the check closes it', async () => {
+    await checkLevel();
+    mic.end();
+    await recorder.settled();
+    expect(recorder.getState().status).toBe('idle');
+    expect(mic.openSessions).toBe(0);
   });
 });

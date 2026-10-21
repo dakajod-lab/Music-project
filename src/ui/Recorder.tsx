@@ -1,7 +1,8 @@
 import { formatTime } from '../core/formatTime';
+import type { Player } from '../core/player/Player';
 import { MAX_RECORDING_MS } from '../core/recorder/recorderMachine';
 import type { RecorderController } from '../core/recorder/RecorderController';
-import { useRecorderState } from './useRecorder';
+import { useInputLevel, usePlayerState, useRecorderState } from './useRecorder';
 
 const PROBLEM_TEXT = {
   denied:
@@ -15,25 +16,39 @@ const STOP_TEXT = {
   interrupted: 'Recording was interrupted. The audio up to the interruption is kept.',
 } as const;
 
+const STATUS_TEXT = {
+  confirmingReplace: 'Replace the existing recording?',
+  requestingPermission: 'Waiting for microphone access…',
+  monitoring: 'Checking input level',
+  recording: 'Recording',
+  error: 'Cannot record',
+} as const;
+
 /** Minimal, design-neutral recorder UI. Look and feel comes later (roadmap). */
-export function Recorder({ recorder }: { recorder: RecorderController }) {
+export function Recorder({ recorder, player }: { recorder: RecorderController; player: Player }) {
   const state = useRecorderState(recorder);
+  const playerState = usePlayerState(player);
   const { dispatch } = recorder;
   const isRecording = state.status === 'recording';
+  const micOpen = isRecording || state.status === 'monitoring';
+  const isPlaying = playerState.status === 'playing';
+
+  const start = () => {
+    player.stop(); // never record while playing back
+    dispatch({ type: 'START' });
+  };
 
   return (
     <section aria-label="Recorder">
       <p role="status" data-testid="recorder-status">
-        {
-          {
-            idle: state.hasRecording ? 'Recording ready' : 'Ready to record',
-            confirmingReplace: 'Replace the existing recording?',
-            requestingPermission: 'Waiting for microphone access…',
-            recording: 'Recording',
-            error: 'Cannot record',
-          }[state.status]
-        }
+        {state.status === 'idle'
+          ? state.hasRecording
+            ? 'Recording ready'
+            : 'Ready to record'
+          : STATUS_TEXT[state.status]}
       </p>
+
+      {micOpen && <InputLevelMeter recorder={recorder} />}
 
       {isRecording && (
         <p>
@@ -54,15 +69,55 @@ export function Recorder({ recorder }: { recorder: RecorderController }) {
         </p>
       )}
 
-      {state.status === 'idle' && (
-        <button type="button" onClick={() => dispatch({ type: 'START' })}>
+      {(state.status === 'idle' || state.status === 'monitoring') && (
+        <button type="button" onClick={start}>
           Start recording
+        </button>
+      )}
+      {state.status === 'idle' && (
+        <button type="button" onClick={() => dispatch({ type: 'CHECK_LEVEL' })}>
+          Check input level
+        </button>
+      )}
+      {state.status === 'monitoring' && (
+        <button type="button" onClick={() => dispatch({ type: 'STOP_CHECK' })}>
+          Stop checking
         </button>
       )}
       {isRecording && (
         <button type="button" onClick={() => dispatch({ type: 'STOP' })}>
           Stop recording
         </button>
+      )}
+
+      {state.status === 'idle' && state.hasRecording && (
+        <div aria-label="Playback">
+          {isPlaying ? (
+            <button type="button" onClick={() => player.stop()}>
+              Stop playback
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                const recording = recorder.getRecording();
+                if (recording) void player.play(recording);
+              }}
+            >
+              Play recording
+            </button>
+          )}
+          <p>
+            <span data-testid="player-status">{isPlaying ? 'Playing' : 'Stopped'}</span>{' '}
+            <span data-testid="playback-position" aria-label="Playback position">
+              {formatTime(playerState.positionMs)}
+            </span>
+            {' / '}
+            <span data-testid="playback-duration">
+              {formatTime(playerState.durationMs || state.recordingMs)}
+            </span>
+          </p>
+        </div>
       )}
 
       {state.status === 'confirmingReplace' && (
@@ -87,5 +142,25 @@ export function Recorder({ recorder }: { recorder: RecorderController }) {
         </div>
       )}
     </section>
+  );
+}
+
+/** REC-005: live input level and clipping warning. */
+function InputLevelMeter({ recorder }: { recorder: RecorderController }) {
+  const level = useInputLevel(recorder);
+  return (
+    <div>
+      <label>
+        Input level{' '}
+        <meter data-testid="input-level" min={0} max={1} high={0.9} value={level.peak}>
+          {Math.round(level.peak * 100)}%
+        </meter>
+      </label>
+      {level.clipping && (
+        <p role="alert" data-testid="clipping-warning">
+          Input is clipping (too loud). Move the microphone further away or play more softly.
+        </p>
+      )}
+    </div>
   );
 }
