@@ -137,3 +137,4 @@ In an audio/timing app the third kind is especially likely and important (R1, R4
 | 2026-10-06 | Equivalent mutants are documented, never disabled. | A disable comment hid two real mutants on the WAV encoder (step 7.3). |
 | 2026-10-06 | Stryker uses the command runner (`vitest run src/core` per mutant). | `@stryker-mutator/vitest-runner` 10.0 ran 0 tests per mutant with Vitest 5, so every mutant falsely survived. |
 | 2026-10-06 | Mutation testing also runs the integration tests (`tests/integration`). | Without them the RecorderController scored 0 % although it was tested (step 7.4). |
+| 2026-10-21 | Stryker timeouts raised (30 s + factor 3, concurrency 2); the timeout count is read before the score. | 285 of 363 mutants were "timeouts" (counted as detected) because the time limit was too tight; the real score was 95 %, not 99 %. |
