@@ -1,5 +1,14 @@
-import type { AudioInput, AudioOutput, AudioSession, Clock, Playback } from '../../src/core/ports';
-import { MicrophoneError, type MicrophoneProblem } from '../../src/core/ports';
+import type {
+  AudioInput,
+  AudioOutput,
+  AudioSession,
+  Clock,
+  Lifecycle,
+  Playback,
+  RecordingStore,
+  StoredRecording,
+} from '../../src/core/ports';
+import { MicrophoneError, type MicrophoneProblem, StorageFullError } from '../../src/core/ports';
 
 /** Manually advanced clock: lets tests "wait" 5 minutes in a few milliseconds. */
 export class FakeClock implements Clock {
@@ -32,9 +41,12 @@ export class FakeClock implements Clock {
   }
 }
 
+/** Block size of the fake microphone: 100 ms at 48 kHz. */
+export const FAKE_BLOCK_MS = 100;
+
 /**
- * Fake microphone. The recording contains one sample (value 0.25) per 1/sampleRate of fake-clock time
- * between beginRecording() and stop(). Level blocks are pushed by the test with emit().
+ * Fake microphone. While recording it delivers one block of samples (value 0.25) every 100 ms of fake-clock
+ * time, like a real microphone; stop() returns all recorded blocks. Level-only blocks are pushed with emit().
  */
 export class FakeAudioInput implements AudioInput {
   problem: MicrophoneProblem | null = null;
@@ -58,26 +70,39 @@ export class FakeAudioInput implements AudioInput {
     if (this.unexpectedError) throw this.unexpectedError;
     if (this.problem) throw new MicrophoneError(this.problem);
     this.openSessions++;
-    let recordingSince: number | null = null;
     this.endListeners = [];
     this.sampleListeners = [];
+    const recordedListeners: ((samples: Float32Array) => void)[] = [];
+    const recorded: Float32Array[] = [];
+    let stopBlocks: (() => void) | null = null;
+    const blockLength = (this.sampleRate * FAKE_BLOCK_MS) / 1000;
     return {
       sampleRate: this.sampleRate,
       onEnded: (listener) => this.endListeners.push(listener),
       onSamples: (listener) => this.sampleListeners.push(listener),
+      onRecordedSamples: (listener) => recordedListeners.push(listener),
       beginRecording: () => {
-        recordingSince = this.clock.now();
+        stopBlocks = this.clock.every(FAKE_BLOCK_MS, () => {
+          const block = new Float32Array(blockLength).fill(0.25);
+          recorded.push(block);
+          recordedListeners.forEach((listener) => listener(block));
+        });
       },
       stop: async () => {
+        stopBlocks?.();
         this.openSessions--;
-        if (recordingSince === null) return new Float32Array(0);
-        const length = Math.round(((this.clock.now() - recordingSince) / 1000) * this.sampleRate);
-        return new Float32Array(length).fill(0.25);
+        const out = new Float32Array(recorded.reduce((n, b) => n + b.length, 0));
+        let offset = 0;
+        for (const block of recorded) {
+          out.set(block, offset);
+          offset += block.length;
+        }
+        return out;
       },
     };
   }
 
-  /** Delivers a block of samples, as the microphone would (level meter input). */
+  /** Delivers a block of samples to the level meter, as the microphone would. */
   emit(...values: number[]): void {
     const block = Float32Array.from(values);
     this.sampleListeners.forEach((listener) => listener(block));
@@ -86,6 +111,69 @@ export class FakeAudioInput implements AudioInput {
   /** Simulates the microphone being taken away (phone call, unplugged). */
   end(): void {
     this.endListeners.forEach((listener) => listener());
+  }
+}
+
+/** In-memory recording store with an optional size limit (simulates a full device). */
+export class FakeRecordingStore implements RecordingStore {
+  stored: { sampleRate: number; chunks: Float32Array[]; complete: boolean } | null = null;
+  /** Maximum number of samples that fit; null = unlimited. */
+  capacitySamples: number | null = null;
+  free: number | null = 1e12;
+  appendCalls = 0;
+
+  async begin(sampleRate: number): Promise<void> {
+    this.stored = { sampleRate, chunks: [], complete: false };
+  }
+
+  async append(samples: Float32Array): Promise<void> {
+    this.appendCalls++;
+    if (!this.stored) throw new Error('append() before begin()');
+    const used = this.stored.chunks.reduce((n, c) => n + c.length, 0);
+    if (this.capacitySamples !== null && used + samples.length > this.capacitySamples)
+      throw new StorageFullError();
+    this.stored.chunks.push(samples.slice());
+  }
+
+  async finish(): Promise<void> {
+    if (this.stored) this.stored.complete = true;
+  }
+
+  async load(): Promise<StoredRecording | null> {
+    if (!this.stored) return null;
+    const samples = new Float32Array(this.stored.chunks.reduce((n, c) => n + c.length, 0));
+    let offset = 0;
+    for (const chunk of this.stored.chunks) {
+      samples.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return { samples, sampleRate: this.stored.sampleRate, complete: this.stored.complete };
+  }
+
+  async clear(): Promise<void> {
+    this.stored = null;
+  }
+
+  async freeBytes(): Promise<number | null> {
+    return this.free;
+  }
+
+  /** Number of samples saved so far. */
+  get savedSamples(): number {
+    return this.stored?.chunks.reduce((n, c) => n + c.length, 0) ?? 0;
+  }
+}
+
+/** Lifecycle the test controls: hide() simulates switching to another app. */
+export class FakeLifecycle implements Lifecycle {
+  private listeners: (() => void)[] = [];
+
+  onHidden(listener: () => void): void {
+    this.listeners.push(listener);
+  }
+
+  hide(): void {
+    this.listeners.forEach((listener) => listener());
   }
 }
 

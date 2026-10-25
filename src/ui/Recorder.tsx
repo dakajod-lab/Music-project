@@ -2,7 +2,7 @@ import { formatTime } from '../core/formatTime';
 import type { Player } from '../core/player/Player';
 import { MAX_RECORDING_MS } from '../core/recorder/recorderMachine';
 import type { RecorderController } from '../core/recorder/RecorderController';
-import { useInputLevel, usePlayerState, useRecorderState } from './useRecorder';
+import { useInputLevel, useNotices, usePlayerState, useRecorderState } from './useRecorder';
 
 const PROBLEM_TEXT = {
   denied:
@@ -14,6 +14,9 @@ const STOP_TEXT = {
   user: 'Recording stopped.',
   limit: `Recording stopped automatically at the ${formatTime(MAX_RECORDING_MS)} limit.`,
   interrupted: 'Recording was interrupted. The audio up to the interruption is kept.',
+  storageFull: 'Device storage is full. The recording was stopped; the audio recorded so far is kept.',
+  recovered:
+    'Recovered: the app closed unexpectedly during this recording. The audio up to that moment is kept.',
 } as const;
 
 const STATUS_TEXT = {
@@ -28,6 +31,7 @@ const STATUS_TEXT = {
 export function Recorder({ recorder, player }: { recorder: RecorderController; player: Player }) {
   const state = useRecorderState(recorder);
   const playerState = usePlayerState(player);
+  const notices = useNotices(recorder);
   const { dispatch } = recorder;
   const isRecording = state.status === 'recording';
   const micOpen = isRecording || state.status === 'monitoring';
@@ -59,6 +63,18 @@ export function Recorder({ recorder, player }: { recorder: RecorderController; p
           <span data-testid="time-limit" aria-label="Time limit">
             {formatTime(MAX_RECORDING_MS)}
           </span>
+        </p>
+      )}
+
+      {isRecording && notices.lowStorage && (
+        <p role="alert" data-testid="low-storage-warning">
+          Storage is almost full: this recording may not fit. It will stop automatically if the device runs
+          out of space.
+        </p>
+      )}
+      {notices.saveFailed && (
+        <p role="alert" data-testid="save-failed-warning">
+          The recording could not be saved on this device. Export it before closing the app.
         </p>
       )}
 

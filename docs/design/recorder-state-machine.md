@@ -70,3 +70,4 @@ starts the timer and keeps samples from that moment; leaving `recording` stops a
 | 2026-10-06 | Hand-written state machine, no library. | Small, readable, every line mutation-tested. |
 | 2026-10-06 | 7.4 scope: REC-001 + REC-002 end to end; full state machine unit-tested. | Reviewable PR size. |
 | 2026-10-21 | New state `monitoring` and events CHECK_LEVEL / STOP_CHECK for REC-005.3 (step 7.5). Recording from `monitoring` reuses the open microphone; samples from the check are not part of the recording. | Implements the agreed "check level" action (option b). |
+| 2026-10-25 | Events STORAGE_FULL (recording → idle, keep audio) and RESTORED (idle: stored recording loaded; `recovered` when it was never finished). Stop reasons `storageFull`, `recovered`. 6 × 14 = 84 cells. | STO-001.2 / STO-001.3. |

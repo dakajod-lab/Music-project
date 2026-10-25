@@ -141,6 +141,14 @@ the reference phone.
 ### Workshop summary
 Owner: *"The main focus is ease of use and quick recording with high enough quality to play with in Ableton. The risks cover this well."*
 
+### Test environment notes (step 7.6)
+- **Crash** is simulated by stopping all JavaScript at once (CDP `Runtime.terminateExecution`) and closing the tab:
+  the app gets no chance to save more. Chromium's own `Page.crash` also destroys the test's browser context.
+- **Browser restart** is simulated with a new browser context that receives the old one's stored data (IndexedDB included).
+- **Phone call** shows up in the browser as the microphone track ending, the same signal as unplugging; tested that way.
+  What OxygenOS really sends during a call is part of charter CH-002 on the reference phone.
+- **Full device** is simulated by shrinking the storage quota (CDP `Storage.overrideQuotaForOrigin`).
+
 ### R6, R7, R8 — ⏳ provisional
 Scores accepted as they stand. Reviewed in depth when the release they belong to is planned (0.3 / later).
 

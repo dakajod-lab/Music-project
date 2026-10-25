@@ -38,6 +38,7 @@ export function createBrowserAudioInput(): AudioInput {
 
       const chunks: Float32Array[] = [];
       const sampleListeners: ((samples: Float32Array) => void)[] = [];
+      const recordedListeners: ((samples: Float32Array) => void)[] = [];
       let recording = false;
       // Flushes are numbered: the worklet answers { flushed: id } after posting its partly filled block.
       let lastFlush = 0;
@@ -58,7 +59,10 @@ export function createBrowserAudioInput(): AudioInput {
           return;
         }
         // Blocks that arrive before the beginRecording() flush is acknowledged are from before the start.
-        if (recording && acknowledged >= recordFromFlush) chunks.push(data);
+        if (recording && acknowledged >= recordFromFlush) {
+          chunks.push(data);
+          recordedListeners.forEach((listener) => listener(data));
+        }
         sampleListeners.forEach((listener) => listener(data));
       };
 
@@ -70,6 +74,9 @@ export function createBrowserAudioInput(): AudioInput {
         },
         onSamples(listener) {
           sampleListeners.push(listener);
+        },
+        onRecordedSamples(listener) {
+          recordedListeners.push(listener);
         },
         beginRecording() {
           chunks.length = 0;

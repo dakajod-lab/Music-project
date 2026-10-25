@@ -27,6 +27,8 @@ const EVENTS: Record<RecorderEvent['type'], RecorderEvent> = {
   DISMISS: { type: 'DISMISS' },
   CHECK_LEVEL: { type: 'CHECK_LEVEL' },
   STOP_CHECK: { type: 'STOP_CHECK' },
+  STORAGE_FULL: { type: 'STORAGE_FULL' },
+  RESTORED: { type: 'RESTORED', recordingMs: 4000, recovered: true },
 };
 
 /** Representative state per status, as reached in normal use. */
@@ -57,6 +59,8 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     DISMISS: null,
     CHECK_LEVEL: 'requestingPermission',
     STOP_CHECK: null,
+    STORAGE_FULL: null,
+    RESTORED: 'idle',
   },
   confirmingReplace: {
     START: null,
@@ -71,6 +75,8 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     DISMISS: null,
     CHECK_LEVEL: null,
     STOP_CHECK: null,
+    STORAGE_FULL: null,
+    RESTORED: null,
   },
   requestingPermission: {
     START: null,
@@ -85,6 +91,8 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     DISMISS: null,
     CHECK_LEVEL: null,
     STOP_CHECK: null,
+    STORAGE_FULL: null,
+    RESTORED: null,
   },
   monitoring: {
     START: 'recording',
@@ -99,6 +107,8 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     DISMISS: null,
     CHECK_LEVEL: null,
     STOP_CHECK: 'idle',
+    STORAGE_FULL: null,
+    RESTORED: null,
   },
   recording: {
     START: null,
@@ -113,6 +123,8 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     DISMISS: null,
     CHECK_LEVEL: null,
     STOP_CHECK: null,
+    STORAGE_FULL: 'idle',
+    RESTORED: null,
   },
   error: {
     START: null,
@@ -127,6 +139,8 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     DISMISS: 'idle',
     CHECK_LEVEL: null,
     STOP_CHECK: null,
+    STORAGE_FULL: null,
+    RESTORED: null,
   },
 };
 
@@ -140,7 +154,7 @@ const cells = Object.entries(TABLE).flatMap(([status, row]) =>
 
 describe('ADR-007 recorder state machine: full transition table (state transition testing)', () => {
   it('covers every state × event combination', () => {
-    expect(cells).toHaveLength(6 * 12);
+    expect(cells).toHaveLength(6 * 14);
   });
 
   it.each(cells)('$status + $event → $expected', ({ status, event, expected }) => {
@@ -289,6 +303,35 @@ describe('REC-003 interruption (state part)', () => {
       hasRecording: true,
       recordingMs: 3000,
       stoppedBy: 'interrupted',
+    });
+  });
+});
+
+describe('STO-001 storage (state part)', () => {
+  it('STO-001.2 STORAGE_FULL stops the recording and keeps it', () => {
+    expect(transition(base('recording', { elapsedMs: 2500 }), EVENTS.STORAGE_FULL)).toMatchObject({
+      status: 'idle',
+      hasRecording: true,
+      recordingMs: 2500,
+      stoppedBy: 'storageFull',
+    });
+  });
+
+  it('STO-001.1 RESTORED shows a stored recording as ready', () => {
+    const restored = transition(STATES.idle, { type: 'RESTORED', recordingMs: 4000, recovered: false });
+    expect(restored).toMatchObject({
+      status: 'idle',
+      hasRecording: true,
+      recordingMs: 4000,
+      stoppedBy: null,
+    });
+  });
+
+  it('STO-001.3 RESTORED after a crash marks the recording as recovered', () => {
+    expect(transition(STATES.idle, EVENTS.RESTORED)).toMatchObject({
+      hasRecording: true,
+      recordingMs: 4000,
+      stoppedBy: 'recovered',
     });
   });
 });

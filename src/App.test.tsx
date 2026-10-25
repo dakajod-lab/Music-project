@@ -1,7 +1,13 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { FakeAudioInput, FakeAudioOutput, FakeClock } from '../tests/support/fakes';
+import {
+  FakeAudioInput,
+  FakeAudioOutput,
+  FakeClock,
+  FakeLifecycle,
+  FakeRecordingStore,
+} from '../tests/support/fakes';
 import { App } from './App';
 import { Player } from './core/player/Player';
 import { RecorderController } from './core/recorder/RecorderController';
@@ -10,10 +16,12 @@ function setup() {
   const clock = new FakeClock();
   const mic = new FakeAudioInput(clock);
   const speaker = new FakeAudioOutput(clock);
-  const recorder = new RecorderController(mic, clock);
+  const store = new FakeRecordingStore();
+  const lifecycle = new FakeLifecycle();
+  const recorder = new RecorderController({ audioInput: mic, clock, store, lifecycle });
   const player = new Player(speaker, clock);
   render(<App createServices={() => ({ recorder, player })} />);
-  return { clock, mic, speaker, recorder, player, user: userEvent.setup() };
+  return { clock, mic, speaker, store, lifecycle, recorder, player, user: userEvent.setup() };
 }
 
 async function recordSeconds(ctx: ReturnType<typeof setup>, seconds: number) {
@@ -114,5 +122,32 @@ describe('App', () => {
     await act(() => Promise.resolve());
     await ctx.user.click(screen.getByRole('button', { name: 'Start recording' }));
     expect(ctx.speaker.playing).toBe(false);
+  });
+
+  it('STO-001.3 tells the user when a recording was recovered after a crash', async () => {
+    const ctx = setup();
+    await ctx.store.begin(48_000);
+    await ctx.store.append(new Float32Array(2 * 48_000));
+    await act(() => ctx.recorder.restore());
+    expect(screen.getByTestId('recording-info')).toHaveTextContent(/Recovered/);
+    expect(screen.getByTestId('recording-length')).toHaveTextContent('0:02');
+  });
+
+  it('STO-001.2 tells the user when storage is full', async () => {
+    const ctx = setup();
+    ctx.store.capacitySamples = 48_000;
+    await ctx.user.click(screen.getByRole('button', { name: 'Start recording' }));
+    await act(() => ctx.recorder.settled());
+    act(() => ctx.clock.advance(3_000));
+    await act(() => ctx.recorder.settled());
+    expect(screen.getByTestId('recording-info')).toHaveTextContent(/storage is full/);
+  });
+
+  it('STO-001.4 warns about low storage while recording', async () => {
+    const ctx = setup();
+    ctx.store.free = 1_000;
+    await ctx.user.click(screen.getByRole('button', { name: 'Start recording' }));
+    await act(() => ctx.recorder.settled());
+    expect(screen.getByTestId('low-storage-warning')).toBeInTheDocument();
   });
 });

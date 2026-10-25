@@ -6,6 +6,10 @@ export function useRecorderState(recorder: RecorderController) {
   return useSyncExternalStore(recorder.subscribe, recorder.getState);
 }
 
+export function useNotices(recorder: RecorderController) {
+  return useSyncExternalStore(recorder.subscribe, recorder.getNotices);
+}
+
 export function useInputLevel(recorder: RecorderController) {
   return useSyncExternalStore(recorder.subscribeLevel, recorder.getLevel);
 }

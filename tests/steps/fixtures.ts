@@ -13,8 +13,30 @@ export class AppDriver {
   /** Time between starting navigation and the start button being usable (NFR-PERF-001). */
   readyAfterMs: number | null = null;
 
-  constructor(readonly page: Page) {
+  /** Elapsed time shown just before an interruption (REC-003), in seconds. */
+  elapsedAtInterruption: number | null = null;
+
+  constructor(public page: Page) {
     page.on('request', (request) => this.requests.push(request));
+  }
+
+  /** Continues the scenario in another page (after closing a tab, a crash or a browser restart). */
+  async reopenIn(page: Page): Promise<void> {
+    this.page = page;
+    page.on('request', (request) => this.requests.push(request));
+    this.opened = false;
+    await this.open();
+  }
+
+  /** Remembers the elapsed time right before an interruption. */
+  async noteElapsed(): Promise<void> {
+    this.elapsedAtInterruption = toSeconds(
+      (await this.page.getByTestId('elapsed-time').textContent()) ?? '0:00',
+    );
+  }
+
+  async recordingLengthSeconds(): Promise<number> {
+    return toSeconds((await this.page.getByTestId('recording-length').textContent()) ?? '0:00');
   }
 
   get isOpen(): boolean {
@@ -35,6 +57,10 @@ export class AppDriver {
         gain.value = g;
         if (gain.node) gain.node.gain.value = g;
       };
+      // REC-003: lets a test take the microphone away, as a phone call or unplugging would.
+      let lastStream: MediaStream | null = null;
+      (window as unknown as { __endMicrophone: () => void }).__endMicrophone = () =>
+        lastStream?.getAudioTracks().forEach((t) => t.dispatchEvent(new Event('ended')));
       navigator.mediaDevices.getUserMedia = async (constraints) => {
         w.__micRequests++;
         if (mode === 'denied') throw new DOMException('Permission denied', 'NotAllowedError');
@@ -44,6 +70,7 @@ export class AppDriver {
         const destination = context.createMediaStreamDestination();
         gain.node = new GainNode(context, { gain: gain.value });
         context.createMediaStreamSource(real).connect(gain.node).connect(destination);
+        lastStream = destination.stream;
         return destination.stream;
       };
     }, this.micMode);
@@ -92,3 +119,9 @@ export const test = base.extend<{ app: AppDriver }>({
 });
 
 export const { Given, When, Then, Step } = createBdd(test);
+
+/** "1:05" → 65 */
+export function toSeconds(text: string): number {
+  const [minutes = '0', seconds = '0'] = text.trim().split(':');
+  return Number(minutes) * 60 + Number(seconds);
+}

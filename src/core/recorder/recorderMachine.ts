@@ -7,7 +7,8 @@ export type RecorderStatus =
   'idle' | 'confirmingReplace' | 'requestingPermission' | 'monitoring' | 'recording' | 'error';
 /** Why the microphone is being opened: to record, or only to check the input level (REC-005.3). */
 export type MicrophoneIntent = 'record' | 'monitor';
-export type StopReason = 'user' | 'limit' | 'interrupted';
+/** Why the recording ended. 'recovered' = restored after the app closed unexpectedly (STO-001.3). */
+export type StopReason = 'user' | 'limit' | 'interrupted' | 'storageFull' | 'recovered';
 
 export interface RecorderState {
   status: RecorderStatus;
@@ -33,7 +34,9 @@ export type RecorderEvent =
   | { type: 'INTERRUPTED' }
   | { type: 'DISMISS' }
   | { type: 'CHECK_LEVEL' }
-  | { type: 'STOP_CHECK' };
+  | { type: 'STOP_CHECK' }
+  | { type: 'STORAGE_FULL' }
+  | { type: 'RESTORED'; recordingMs: number; recovered: boolean };
 
 export const initialState: RecorderState = {
   status: 'idle',
@@ -56,6 +59,14 @@ export function transition(state: RecorderState, event: RecorderEvent): Recorder
       }
       if (event.type === 'CHECK_LEVEL')
         return { ...state, status: 'requestingPermission', intent: 'monitor' };
+      if (event.type === 'RESTORED') {
+        return {
+          ...state,
+          hasRecording: true,
+          recordingMs: event.recordingMs,
+          stoppedBy: event.recovered ? 'recovered' : null,
+        };
+      }
       return state;
 
     case 'confirmingReplace':
@@ -100,6 +111,7 @@ export function transition(state: RecorderState, event: RecorderEvent): Recorder
       }
       if (event.type === 'STOP') return finish(state, 'user');
       if (event.type === 'INTERRUPTED') return finish(state, 'interrupted');
+      if (event.type === 'STORAGE_FULL') return finish(state, 'storageFull');
       return state;
 
     case 'error':
