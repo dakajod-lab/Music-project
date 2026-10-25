@@ -2,7 +2,7 @@ import { type BrowserContext, type Page, expect } from '@playwright/test';
 import { type AppDriver, Then, When, Given } from './fixtures';
 
 const QUOTA_FULL = 400_000; // ~2 s of audio: the device fills up during the recording
-const QUOTA_LOW = 10_000_000; // room for a short idea, not for 5 minutes (~58 MB)
+const FREE_LOW = 10_000_000; // room for a short idea, not for 5 minutes (~58 MB)
 
 async function setQuota(app: AppDriver, context: BrowserContext, quotaSize: number) {
   await app.open();
@@ -119,8 +119,8 @@ Then('the user is told that the recording was recovered', async ({ app }) => {
   await expect(app.page.getByTestId('recording-info')).toContainText('Recovered');
 });
 
-Given('the device has less free storage than a full-length recording needs', async ({ app, context }) => {
-  await setQuota(app, context, QUOTA_LOW);
+Given('the device has less free storage than a full-length recording needs', async ({ app }) => {
+  app.reportedFreeBytes = FREE_LOW;
 });
 
 Then('the user is warned that the recording may not fit', async ({ app }) => {

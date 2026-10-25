@@ -116,14 +116,19 @@ export class FakeAudioInput implements AudioInput {
 
 /** In-memory recording store with an optional size limit (simulates a full device). */
 export class FakeRecordingStore implements RecordingStore {
-  stored: { sampleRate: number; chunks: Float32Array[]; complete: boolean } | null = null;
+  stored: {
+    sampleRate: number;
+    chunks: Float32Array[];
+    complete: boolean;
+    recordingMs: number | null;
+  } | null = null;
   /** Maximum number of samples that fit; null = unlimited. */
   capacitySamples: number | null = null;
   free: number | null = 1e12;
   appendCalls = 0;
 
   async begin(sampleRate: number): Promise<void> {
-    this.stored = { sampleRate, chunks: [], complete: false };
+    this.stored = { sampleRate, chunks: [], complete: false, recordingMs: null };
   }
 
   async append(samples: Float32Array): Promise<void> {
@@ -135,8 +140,8 @@ export class FakeRecordingStore implements RecordingStore {
     this.stored.chunks.push(samples.slice());
   }
 
-  async finish(): Promise<void> {
-    if (this.stored) this.stored.complete = true;
+  async finish(recordingMs: number): Promise<void> {
+    if (this.stored) Object.assign(this.stored, { complete: true, recordingMs });
   }
 
   async load(): Promise<StoredRecording | null> {
@@ -147,7 +152,12 @@ export class FakeRecordingStore implements RecordingStore {
       samples.set(chunk, offset);
       offset += chunk.length;
     }
-    return { samples, sampleRate: this.stored.sampleRate, complete: this.stored.complete };
+    return {
+      samples,
+      sampleRate: this.stored.sampleRate,
+      complete: this.stored.complete,
+      recordingMs: this.stored.recordingMs,
+    };
   }
 
   async clear(): Promise<void> {

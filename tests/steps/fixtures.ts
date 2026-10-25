@@ -2,10 +2,13 @@ import { type Page, type Request, expect } from '@playwright/test';
 import { test as base, createBdd } from 'playwright-bdd';
 
 export type MicMode = 'real' | 'denied' | 'none';
+/** Free storage the page reports (STO-001.4); null = the browser's real value. */
+export type ReportedFreeBytes = number | null;
 
 /** Drives the app in the browser. Holds per-scenario setup that must exist before the page loads. */
 export class AppDriver {
   micMode: MicMode = 'real';
+  reportedFreeBytes: ReportedFreeBytes = null;
   private opened = false;
   oldRecordingLength: string | null = null;
   /** Every network request the page makes, from the first navigation on (NFR-SEC-001/003). */
@@ -74,6 +77,13 @@ export class AppDriver {
         return destination.stream;
       };
     }, this.micMode);
+    if (this.reportedFreeBytes !== null) {
+      // Chromium's quota override is enforced on writes but no longer reported by estimate(), so the reported
+      // free space is set at the API boundary instead (P4).
+      await this.page.addInitScript((free: number) => {
+        navigator.storage.estimate = async () => ({ quota: free, usage: 0 });
+      }, this.reportedFreeBytes);
+    }
     // Controllable clock (REC-002): runs in real time until a step fast-forwards it.
     await this.page.clock.install();
     const navigationStarted = Date.now();

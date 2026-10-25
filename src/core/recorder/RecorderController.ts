@@ -163,10 +163,11 @@ export class RecorderController {
     const stored = await this.store.load();
     if (!stored || stored.samples.length === 0) return;
     this.recording = { samples: stored.samples, sampleRate: stored.sampleRate };
-    const recordingMs = (stored.samples.length / stored.sampleRate) * 1000;
+    // A finished recording keeps the length the user saw; a recovered one has only its saved audio.
+    const recordingMs = stored.recordingMs ?? (stored.samples.length / stored.sampleRate) * 1000;
     this.dispatch({ type: 'RESTORED', recordingMs, recovered: !stored.complete });
     // Recovered once: from now on it is an ordinary stored recording.
-    if (!stored.complete) this.save(() => this.store.finish());
+    if (!stored.complete) this.save(() => this.store.finish(recordingMs));
   }
 
   private async openMicrophone(): Promise<void> {
@@ -257,7 +258,8 @@ export class RecorderController {
     if (!session) return;
     const samples = await session.stop();
     this.saveUnsaved(); // the last part, recorded since the previous save
-    this.save(() => this.store.finish());
+    const recordingMs = this.state.recordingMs;
+    this.save(() => this.store.finish(recordingMs));
     this.recording = { samples, sampleRate: session.sampleRate };
     this.notify();
   }

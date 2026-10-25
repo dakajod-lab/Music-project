@@ -8,6 +8,7 @@ const CURRENT = 'current';
 interface Meta {
   sampleRate: number;
   complete: boolean;
+  recordingMs?: number;
 }
 
 /** RecordingStore on IndexedDB (ADR-005): metadata + audio saved in chunks while recording. */
@@ -55,9 +56,9 @@ export function createIndexedDbStore(): RecordingStore {
     async append(samples) {
       await write((_meta, chunks) => chunks.add(samples));
     },
-    async finish() {
+    async finish(recordingMs) {
       const meta = await read<Meta | undefined>(META, (s) => s.get(CURRENT));
-      if (meta) await write((m) => m.put({ ...meta, complete: true }, CURRENT));
+      if (meta) await write((m) => m.put({ ...meta, complete: true, recordingMs }, CURRENT));
     },
     async load(): Promise<StoredRecording | null> {
       const meta = await read<Meta | undefined>(META, (s) => s.get(CURRENT));
@@ -69,7 +70,12 @@ export function createIndexedDbStore(): RecordingStore {
         samples.set(chunk, offset);
         offset += chunk.length;
       }
-      return { samples, sampleRate: meta.sampleRate, complete: meta.complete };
+      return {
+        samples,
+        sampleRate: meta.sampleRate,
+        complete: meta.complete,
+        recordingMs: meta.recordingMs ?? null,
+      };
     },
     async clear() {
       await write((meta, chunks) => {

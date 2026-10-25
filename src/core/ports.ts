@@ -59,6 +59,8 @@ export interface StoredRecording {
   sampleRate: number;
   /** false when the app closed before the recording was finished (crash, tab closed). */
   complete: boolean;
+  /** Length shown to the user when the recording finished; null if it never finished. */
+  recordingMs: number | null;
 }
 
 /** Keeps the recording on the device between sessions (STO-001, ADR-005). One recording slot in 0.1. */
@@ -67,8 +69,8 @@ export interface RecordingStore {
   begin(sampleRate: number): Promise<void>;
   /** Appends samples to the recording being made. Rejects with StorageFullError when there is no space. */
   append(samples: Float32Array): Promise<void>;
-  /** Marks the recording as complete. */
-  finish(): Promise<void>;
+  /** Marks the recording as complete, with the length shown to the user (so it is the same after a reload). */
+  finish(recordingMs: number): Promise<void>;
   load(): Promise<StoredRecording | null>;
   clear(): Promise<void>;
   /** Free bytes available to the app, or null when the browser cannot tell. */

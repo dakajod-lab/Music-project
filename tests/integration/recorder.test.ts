@@ -344,6 +344,16 @@ describe('STO-001 kept on the device (core + fake store)', () => {
     expect(SAVE_INTERVAL_MS).toBeLessThanOrEqual(2_000); // REC-003.1: at most 2 s lost
   });
 
+  it('STO-001.1 the length shown before closing is exactly the length shown after reopening', async () => {
+    await startRecording();
+    clock.advance(2_950); // the audio ends a little before or after the timer; the shown length must not change
+    recorder.dispatch({ type: 'STOP' });
+    await recorder.settled();
+    const shown = recorder.getState().recordingMs;
+    store.stored?.chunks.pop(); // the saved audio is a bit shorter than the timer
+    expect((await reopen()).getState().recordingMs).toBe(shown);
+  });
+
   it('a recovered recording is only reported as recovered once', async () => {
     await startRecording();
     clock.advance(2_000);
