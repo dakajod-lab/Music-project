@@ -48,3 +48,6 @@ Non-functional requirements (usability, performance, devices, ...) are in [04-nf
 | 2026-10-06 | NFRs that can be automated are also written as scenarios in `/features`, tagged `@nfr`. | One place for everything that runs as a test; NFR definitions stay in 04-nfr.md. |
 | 2026-10-08 | REC-005.3 reworded: the level before recording is shown after the user **checks** it, not automatically. | Matches the agreed design (option b: no microphone on app start). The old wording required option a. |
 | 2026-10-08 | Added `@nfr` scenarios for NFR-SEC-001, NFR-SEC-003, NFR-A11Y-002, NFR-PERF-001/002, NFR-CMP-002. | These NFRs said "automated" but had no scenario, so the traceability report could not see them. |
+| 2026-10-25 | STO-001.3: a recording recovered after a crash or closed tab is kept **and the user is told** it was recovered. | Honest about what happened; gives the manual test something visible to check. |
+| 2026-10-25 | REC-003: the app going to the background **stops** the recording and keeps the audio recorded before it. Background recording is a possible later feature. | A web page on Android cannot record reliably in the background. |
+| 2026-10-25 | STO-001.4: warn before recording when free storage is below a full-length recording (~58 MB), but still allow recording. | A short idea may still fit. |

@@ -28,8 +28,9 @@ Given('no microphone is available', async ({ app }) => {
 
 // ── Recording ────────────────────────────────────────────────────────────────
 
-Given('a recording is in progress', async ({ app }) => {
-  await app.recordFor('0:01');
+// Used as Given and as When (STO-001.2), so keyword-agnostic.
+Step('a recording is in progress', async ({ app }) => {
+  await app.recordFor('0:02');
 });
 
 Given('a recording exists', async ({ app }) => {

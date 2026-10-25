@@ -74,6 +74,7 @@ Goal: prove the full pipeline (code → tests → CI → deployed URL) with mini
 - Native mobile apps.
 - Effects, mixing automation.
 - Warning when Bluetooth headphones are used (risk R10).
+- Recording while the app is in the background (REC-003 decision 2026-10-25).
 - MIDI export of loops (wanted later, but not the core appeal: audio recording is).
 
 ## Limits (MVP)

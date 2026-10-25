@@ -7,11 +7,12 @@ class CaptureProcessor extends AudioWorkletProcessor {
     super();
     this.buffer = new Float32Array(BLOCK_SIZE);
     this.filled = 0;
+    // { flush: id } → posts the partly filled block, then { flushed: id }.
     this.port.onmessage = (event) => {
-      if (event.data === 'flush') {
+      if (event.data && typeof event.data.flush === 'number') {
         this.port.postMessage(this.buffer.slice(0, this.filled));
         this.filled = 0;
-        this.port.postMessage('flushed');
+        this.port.postMessage({ flushed: event.data.flush });
       }
     };
   }

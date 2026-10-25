@@ -3,11 +3,16 @@ import type { MicrophoneProblem } from '../ports';
 
 export const MAX_RECORDING_MS = 5 * 60 * 1000; // REC-002
 
-export type RecorderStatus = 'idle' | 'confirmingReplace' | 'requestingPermission' | 'recording' | 'error';
-export type StopReason = 'user' | 'limit' | 'interrupted';
+export type RecorderStatus =
+  'idle' | 'confirmingReplace' | 'requestingPermission' | 'monitoring' | 'recording' | 'error';
+/** Why the microphone is being opened: to record, or only to check the input level (REC-005.3). */
+export type MicrophoneIntent = 'record' | 'monitor';
+/** Why the recording ended. 'recovered' = restored after the app closed unexpectedly (STO-001.3). */
+export type StopReason = 'user' | 'limit' | 'interrupted' | 'storageFull' | 'recovered';
 
 export interface RecorderState {
   status: RecorderStatus;
+  intent: MicrophoneIntent;
   /** Time recorded so far in the current recording. */
   elapsedMs: number;
   /** Whether a finished recording exists, and its length. */
@@ -27,10 +32,15 @@ export type RecorderEvent =
   | { type: 'TICK'; deltaMs: number }
   | { type: 'STOP' }
   | { type: 'INTERRUPTED' }
-  | { type: 'DISMISS' };
+  | { type: 'DISMISS' }
+  | { type: 'CHECK_LEVEL' }
+  | { type: 'STOP_CHECK' }
+  | { type: 'STORAGE_FULL' }
+  | { type: 'RESTORED'; recordingMs: number; recovered: boolean };
 
 export const initialState: RecorderState = {
   status: 'idle',
+  intent: 'record',
   elapsedMs: 0,
   hasRecording: false,
   recordingMs: 0,
@@ -45,7 +55,17 @@ export function transition(state: RecorderState, event: RecorderEvent): Recorder
       if (event.type === 'START') {
         return state.hasRecording
           ? { ...state, status: 'confirmingReplace' }
-          : { ...state, status: 'requestingPermission', elapsedMs: 0 };
+          : { ...state, status: 'requestingPermission', intent: 'record', elapsedMs: 0 };
+      }
+      if (event.type === 'CHECK_LEVEL')
+        return { ...state, status: 'requestingPermission', intent: 'monitor' };
+      if (event.type === 'RESTORED') {
+        return {
+          ...state,
+          hasRecording: true,
+          recordingMs: event.recordingMs,
+          stoppedBy: event.recovered ? 'recovered' : null,
+        };
       }
       return state;
 
@@ -54,6 +74,7 @@ export function transition(state: RecorderState, event: RecorderEvent): Recorder
         return {
           ...state,
           status: 'requestingPermission',
+          intent: 'record',
           hasRecording: false,
           recordingMs: 0,
           elapsedMs: 0,
@@ -63,10 +84,22 @@ export function transition(state: RecorderState, event: RecorderEvent): Recorder
       return state;
 
     case 'requestingPermission':
-      if (event.type === 'PERMISSION_GRANTED')
-        return { ...state, status: 'recording', elapsedMs: 0, stoppedBy: null };
+      if (event.type === 'PERMISSION_GRANTED') {
+        return state.intent === 'monitor'
+          ? { ...state, status: 'monitoring' }
+          : { ...state, status: 'recording', elapsedMs: 0, stoppedBy: null };
+      }
       if (event.type === 'PERMISSION_DENIED') return { ...state, status: 'error', error: 'denied' };
       if (event.type === 'NO_MICROPHONE') return { ...state, status: 'error', error: 'noMicrophone' };
+      return state;
+
+    case 'monitoring':
+      if (event.type === 'START') {
+        return state.hasRecording
+          ? { ...state, status: 'confirmingReplace' }
+          : { ...state, status: 'recording', elapsedMs: 0, stoppedBy: null };
+      }
+      if (event.type === 'STOP_CHECK' || event.type === 'INTERRUPTED') return { ...state, status: 'idle' };
       return state;
 
     case 'recording':
@@ -78,6 +111,7 @@ export function transition(state: RecorderState, event: RecorderEvent): Recorder
       }
       if (event.type === 'STOP') return finish(state, 'user');
       if (event.type === 'INTERRUPTED') return finish(state, 'interrupted');
+      if (event.type === 'STORAGE_FULL') return finish(state, 'storageFull');
       return state;
 
     case 'error':

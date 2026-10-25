@@ -25,6 +25,10 @@ const EVENTS: Record<RecorderEvent['type'], RecorderEvent> = {
   STOP: { type: 'STOP' },
   INTERRUPTED: { type: 'INTERRUPTED' },
   DISMISS: { type: 'DISMISS' },
+  CHECK_LEVEL: { type: 'CHECK_LEVEL' },
+  STOP_CHECK: { type: 'STOP_CHECK' },
+  STORAGE_FULL: { type: 'STORAGE_FULL' },
+  RESTORED: { type: 'RESTORED', recordingMs: 4000, recovered: true },
 };
 
 /** Representative state per status, as reached in normal use. */
@@ -32,6 +36,7 @@ const STATES: Record<RecorderStatus, RecorderState> = {
   idle: base('idle'),
   confirmingReplace: base('confirmingReplace', { hasRecording: true, recordingMs: 3000 }),
   requestingPermission: base('requestingPermission'),
+  monitoring: base('monitoring'),
   recording: base('recording', { elapsedMs: 1000 }),
   error: base('error', { error: 'denied' }),
 };
@@ -52,6 +57,10 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     STOP: null,
     INTERRUPTED: null,
     DISMISS: null,
+    CHECK_LEVEL: 'requestingPermission',
+    STOP_CHECK: null,
+    STORAGE_FULL: null,
+    RESTORED: 'idle',
   },
   confirmingReplace: {
     START: null,
@@ -64,6 +73,10 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     STOP: null,
     INTERRUPTED: null,
     DISMISS: null,
+    CHECK_LEVEL: null,
+    STOP_CHECK: null,
+    STORAGE_FULL: null,
+    RESTORED: null,
   },
   requestingPermission: {
     START: null,
@@ -76,6 +89,26 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     STOP: null,
     INTERRUPTED: null,
     DISMISS: null,
+    CHECK_LEVEL: null,
+    STOP_CHECK: null,
+    STORAGE_FULL: null,
+    RESTORED: null,
+  },
+  monitoring: {
+    START: 'recording',
+    CONFIRM: null,
+    CANCEL: null,
+    PERMISSION_GRANTED: null,
+    PERMISSION_DENIED: null,
+    NO_MICROPHONE: null,
+    TICK: null,
+    STOP: null,
+    INTERRUPTED: 'idle',
+    DISMISS: null,
+    CHECK_LEVEL: null,
+    STOP_CHECK: 'idle',
+    STORAGE_FULL: null,
+    RESTORED: null,
   },
   recording: {
     START: null,
@@ -88,6 +121,10 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     STOP: 'idle',
     INTERRUPTED: 'idle',
     DISMISS: null,
+    CHECK_LEVEL: null,
+    STOP_CHECK: null,
+    STORAGE_FULL: 'idle',
+    RESTORED: null,
   },
   error: {
     START: null,
@@ -100,6 +137,10 @@ const TABLE: Record<RecorderStatus, Record<RecorderEvent['type'], RecorderStatus
     STOP: null,
     INTERRUPTED: null,
     DISMISS: 'idle',
+    CHECK_LEVEL: null,
+    STOP_CHECK: null,
+    STORAGE_FULL: null,
+    RESTORED: null,
   },
 };
 
@@ -113,7 +154,7 @@ const cells = Object.entries(TABLE).flatMap(([status, row]) =>
 
 describe('ADR-007 recorder state machine: full transition table (state transition testing)', () => {
   it('covers every state × event combination', () => {
-    expect(cells).toHaveLength(5 * 10);
+    expect(cells).toHaveLength(6 * 14);
   });
 
   it.each(cells)('$status + $event → $expected', ({ status, event, expected }) => {
@@ -131,6 +172,7 @@ describe('initial state', () => {
   it('starts idle, with no recording, no error and the timer at 0', () => {
     expect(initialState).toEqual({
       status: 'idle',
+      intent: 'record',
       elapsedMs: 0,
       hasRecording: false,
       recordingMs: 0,
@@ -208,6 +250,52 @@ describe('REC-002 recording time limit', () => {
   });
 });
 
+describe('REC-005.3 checking the input level (monitoring)', () => {
+  it('CHECK_LEVEL asks for permission with the intent to monitor', () => {
+    expect(transition(STATES.idle, EVENTS.CHECK_LEVEL)).toMatchObject({
+      status: 'requestingPermission',
+      intent: 'monitor',
+    });
+  });
+
+  it('START asks for permission with the intent to record', () => {
+    expect(transition(STATES.idle, EVENTS.START)).toMatchObject({ intent: 'record' });
+  });
+
+  it('a granted permission while checking the level starts monitoring, not recording', () => {
+    const asking = base('requestingPermission', { intent: 'monitor' });
+    expect(transition(asking, EVENTS.PERMISSION_GRANTED).status).toBe('monitoring');
+  });
+
+  it('START while monitoring records immediately (the microphone is already open)', () => {
+    expect(transition(STATES.monitoring, EVENTS.START)).toMatchObject({ status: 'recording', elapsedMs: 0 });
+  });
+
+  it('START while monitoring with an existing recording asks to replace it first', () => {
+    const monitoringWithRecording = base('monitoring', { hasRecording: true, recordingMs: 2000 });
+    expect(transition(monitoringWithRecording, EVENTS.START).status).toBe('confirmingReplace');
+  });
+
+  it('CONFIRM after starting from a level check asks for permission to RECORD, not to monitor', () => {
+    const fromCheck = base('confirmingReplace', { intent: 'monitor', hasRecording: true, recordingMs: 2000 });
+    expect(transition(fromCheck, EVENTS.CONFIRM)).toMatchObject({
+      status: 'requestingPermission',
+      intent: 'record',
+    });
+  });
+
+  it('stopping the check or an interruption returns to idle and keeps an existing recording', () => {
+    const monitoringWithRecording = base('monitoring', { hasRecording: true, recordingMs: 2000 });
+    for (const event of [EVENTS.STOP_CHECK, EVENTS.INTERRUPTED]) {
+      expect(transition(monitoringWithRecording, event)).toMatchObject({
+        status: 'idle',
+        hasRecording: true,
+        recordingMs: 2000,
+      });
+    }
+  });
+});
+
 describe('REC-003 interruption (state part)', () => {
   it('INTERRUPTED stops and keeps the audio so far', () => {
     expect(transition(base('recording', { elapsedMs: 3000 }), EVENTS.INTERRUPTED)).toMatchObject({
@@ -215,6 +303,35 @@ describe('REC-003 interruption (state part)', () => {
       hasRecording: true,
       recordingMs: 3000,
       stoppedBy: 'interrupted',
+    });
+  });
+});
+
+describe('STO-001 storage (state part)', () => {
+  it('STO-001.2 STORAGE_FULL stops the recording and keeps it', () => {
+    expect(transition(base('recording', { elapsedMs: 2500 }), EVENTS.STORAGE_FULL)).toMatchObject({
+      status: 'idle',
+      hasRecording: true,
+      recordingMs: 2500,
+      stoppedBy: 'storageFull',
+    });
+  });
+
+  it('STO-001.1 RESTORED shows a stored recording as ready', () => {
+    const restored = transition(STATES.idle, { type: 'RESTORED', recordingMs: 4000, recovered: false });
+    expect(restored).toMatchObject({
+      status: 'idle',
+      hasRecording: true,
+      recordingMs: 4000,
+      stoppedBy: null,
+    });
+  });
+
+  it('STO-001.3 RESTORED after a crash marks the recording as recovered', () => {
+    expect(transition(STATES.idle, EVENTS.RESTORED)).toMatchObject({
+      hasRecording: true,
+      recordingMs: 4000,
+      stoppedBy: 'recovered',
     });
   });
 });

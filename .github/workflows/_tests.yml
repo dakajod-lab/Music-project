@@ -87,7 +87,11 @@ jobs:
         if: always()
         env:
           REQUIRE_COMPLETE: ${{ inputs.require-complete }}
-        run: node scripts/traceability-report.mjs >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          status=0
+          node scripts/traceability-report.mjs >> "$GITHUB_STEP_SUMMARY" || status=$?
+          cat reports/annotations.txt 2>/dev/null || true
+          exit $status
       - uses: actions/upload-artifact@v7
         if: always()
         with:

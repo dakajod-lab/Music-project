@@ -1,7 +1,7 @@
 // Traceability report (docs/06-test-strategy.md §6): every scenario ID in /features → its test result per browser.
 // Also lists flaky tests (P7). Prints Markdown to stdout.
 // Exit code 1 when REQUIRE_COMPLETE (e.g. "@r0.1") is set and a scenario with that tag has no passing automated test.
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ID = /\b((?:[A-Z][A-Z0-9]*-)+\d{3}\.\d+)\b/;
@@ -35,6 +35,8 @@ function readScenarios(dir = 'features') {
 }
 
 /** Results per scenario ID and project from Playwright's JSON report. */
+const failures = [];
+
 function readResults() {
   const results = new Map(); // id -> project -> { runs: [statuses], outcome }
   if (!existsSync(reportFile)) return results;
@@ -48,6 +50,13 @@ function readResults() {
         const byProject = results.get(id) ?? new Map();
         const entry = byProject.get(test.projectName) ?? { runs: [], outcomes: [] };
         entry.runs.push(...test.results.map((r) => r.status));
+        for (const r of test.results) {
+          if (r.status === 'failed' || r.status === 'timedOut') {
+            const message = (r.error?.message ?? r.status).replace(/\u001b\[[0-9;]*m/g, '').split('\n')[0];
+            const example = /^Example #\d+$/.test(spec.title) ? ` ${spec.title}` : '';
+            failures.push({ id: `${id}${example}`, project: test.projectName, message, retry: r.retry });
+          }
+        }
         entry.outcomes.push(test.status); // expected | unexpected | flaky | skipped
         byProject.set(test.projectName, entry);
         results.set(id, byProject);
@@ -159,4 +168,16 @@ if (requireTag) {
       : `\n✅ All scenarios tagged ${requireTag} have a passing test.`,
   );
 }
+// GitHub annotations: failed scenarios show up on the pull request page (written to a file, printed by the workflow).
+mkdirSync('reports', { recursive: true });
+writeFileSync(
+  'reports/annotations.txt',
+  failures
+    .map(
+      (f) =>
+        `::error title=${f.id} failed (${f.project}, attempt ${f.retry + 1})::${f.message.replace(/[\r\n%]/g, ' ')}`,
+    )
+    .join('\n'),
+);
+
 process.exit(incomplete.length ? 1 : 0);

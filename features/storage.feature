@@ -21,3 +21,15 @@ Feature: Storage (STO)
       Then the recording stops
       And the recorded audio is kept
       And the user is told that storage is full
+
+    Scenario: STO-001.3 A recording interrupted by a crash is recovered
+      Given a recording is in progress
+      When the app closes unexpectedly and is opened again
+      Then the recording up to the moment it closed is available
+      And the user is told that the recording was recovered
+
+    Scenario: STO-001.4 Warning before recording when storage is low
+      Given the device has less free storage than a full-length recording needs
+      When the user starts recording
+      Then the user is warned that the recording may not fit
+      And the recording starts

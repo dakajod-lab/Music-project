@@ -37,10 +37,33 @@ export function createBrowserAudioInput(): AudioInput {
       source.connect(capture).connect(silence).connect(context.destination);
 
       const chunks: Float32Array[] = [];
-      let flushed: (() => void) | null = null;
-      capture.port.onmessage = (event: MessageEvent<Float32Array | 'flushed'>) => {
-        if (event.data === 'flushed') flushed?.();
-        else chunks.push(event.data);
+      const sampleListeners: ((samples: Float32Array) => void)[] = [];
+      const recordedListeners: ((samples: Float32Array) => void)[] = [];
+      let recording = false;
+      // Flushes are numbered: the worklet answers { flushed: id } after posting its partly filled block.
+      let lastFlush = 0;
+      let recordFromFlush = 0;
+      const flushWaiters = new Map<number, () => void>();
+      const flush = (): number => {
+        const id = ++lastFlush;
+        capture.port.postMessage({ flush: id });
+        return id;
+      };
+      let acknowledged = 0;
+      capture.port.onmessage = (event: MessageEvent<Float32Array | { flushed: number }>) => {
+        const data = event.data;
+        if (!(data instanceof Float32Array)) {
+          acknowledged = data.flushed;
+          flushWaiters.get(data.flushed)?.();
+          flushWaiters.delete(data.flushed);
+          return;
+        }
+        // Blocks that arrive before the beginRecording() flush is acknowledged are from before the start.
+        if (recording && acknowledged >= recordFromFlush) {
+          chunks.push(data);
+          recordedListeners.forEach((listener) => listener(data));
+        }
+        sampleListeners.forEach((listener) => listener(data));
       };
 
       const track = stream.getAudioTracks()[0];
@@ -49,10 +72,20 @@ export function createBrowserAudioInput(): AudioInput {
         onEnded(listener) {
           track?.addEventListener('ended', listener);
         },
+        onSamples(listener) {
+          sampleListeners.push(listener);
+        },
+        onRecordedSamples(listener) {
+          recordedListeners.push(listener);
+        },
+        beginRecording() {
+          chunks.length = 0;
+          recording = true;
+          recordFromFlush = flush();
+        },
         async stop() {
           await new Promise<void>((resolve) => {
-            flushed = resolve;
-            capture.port.postMessage('flush');
+            flushWaiters.set(flush(), resolve);
             setTimeout(resolve, 500); // never hang if the audio thread is gone
           });
           source.disconnect();
