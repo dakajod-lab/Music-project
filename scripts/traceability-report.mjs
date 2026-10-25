@@ -53,7 +53,8 @@ function readResults() {
         for (const r of test.results) {
           if (r.status === 'failed' || r.status === 'timedOut') {
             const message = (r.error?.message ?? r.status).replace(/\u001b\[[0-9;]*m/g, '').split('\n')[0];
-            failures.push({ id, project: test.projectName, message });
+            const example = /^Example #\d+$/.test(spec.title) ? ` ${spec.title}` : '';
+            failures.push({ id: `${id}${example}`, project: test.projectName, message, retry: r.retry });
           }
         }
         entry.outcomes.push(test.status); // expected | unexpected | flaky | skipped
@@ -172,7 +173,10 @@ mkdirSync('reports', { recursive: true });
 writeFileSync(
   'reports/annotations.txt',
   failures
-    .map((f) => `::error title=${f.id} failed (${f.project})::${f.message.replace(/[\r\n%]/g, ' ')}`)
+    .map(
+      (f) =>
+        `::error title=${f.id} failed (${f.project}, attempt ${f.retry + 1})::${f.message.replace(/[\r\n%]/g, ' ')}`,
+    )
     .join('\n'),
 );
 

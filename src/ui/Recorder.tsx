@@ -82,6 +82,7 @@ export function Recorder({ recorder, player }: { recorder: RecorderController; p
         <p data-testid="recording-info">
           Recording length: <span data-testid="recording-length">{formatTime(state.recordingMs)}</span>
           {state.stoppedBy && <> · {STOP_TEXT[state.stoppedBy]}</>}
+          {notices.saved && <span data-testid="saved-indicator"> · Saved on this device.</span>}
         </p>
       )}
 

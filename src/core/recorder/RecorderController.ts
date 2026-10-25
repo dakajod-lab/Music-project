@@ -28,6 +28,8 @@ export interface Notices {
   lowStorage: boolean;
   /** Saving failed for another reason than a full device; the recording is only kept in memory. */
   saveFailed: boolean;
+  /** The current recording is completely saved on the device. */
+  saved: boolean;
 }
 
 export interface Recording {
@@ -43,7 +45,7 @@ export interface RecorderDependencies {
 }
 
 const SILENT: InputLevel = { peak: 0, clipping: false };
-const NO_NOTICES: Notices = { lowStorage: false, saveFailed: false };
+const NO_NOTICES: Notices = { lowStorage: false, saveFailed: false, saved: false };
 
 /**
  * Connects the pure state machine to the outside world (microphone, clock, storage, app lifecycle).
@@ -168,6 +170,7 @@ export class RecorderController {
     this.dispatch({ type: 'RESTORED', recordingMs, recovered: !stored.complete });
     // Recovered once: from now on it is an ordinary stored recording.
     if (!stored.complete) this.save(() => this.store.finish(recordingMs));
+    this.save(async () => this.setNotices({ ...this.notices, saved: true }));
   }
 
   private async openMicrophone(): Promise<void> {
@@ -259,7 +262,10 @@ export class RecorderController {
     const samples = await session.stop();
     this.saveUnsaved(); // the last part, recorded since the previous save
     const recordingMs = this.state.recordingMs;
-    this.save(() => this.store.finish(recordingMs));
+    this.save(async () => {
+      await this.store.finish(recordingMs);
+      if (!this.notices.saveFailed) this.setNotices({ ...this.notices, saved: true });
+    });
     this.recording = { samples, sampleRate: session.sampleRate };
     this.notify();
   }

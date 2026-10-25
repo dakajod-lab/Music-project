@@ -120,6 +120,11 @@ export class AppDriver {
     await this.button('Stop recording').click();
     await expect(this.status()).toHaveText('Recording ready');
   }
+
+  /** Waits until the recording is completely saved (STO-001), e.g. before leaving the app on purpose. */
+  async waitUntilSaved(): Promise<void> {
+    await expect(this.page.getByTestId('saved-indicator')).toBeVisible();
+  }
 }
 
 export const test = base.extend<{ app: AppDriver }>({

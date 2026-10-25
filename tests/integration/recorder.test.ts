@@ -315,6 +315,33 @@ describe('STO-001 kept on the device (core + fake store)', () => {
     return again;
   }
 
+  it('says "saved" only once the finished recording is completely saved', async () => {
+    let finish!: () => void;
+    const realFinish = store.finish.bind(store);
+    store.finish = (ms) => new Promise((resolve) => (finish = () => resolve(realFinish(ms))));
+    await startRecording();
+    clock.advance(1_000);
+    recorder.dispatch({ type: 'STOP' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(recorder.getNotices().saved).toBe(false);
+    finish();
+    await recorder.settled();
+    expect(recorder.getNotices().saved).toBe(true);
+  });
+
+  it('a restored recording is shown as saved; a new recording is not (yet)', async () => {
+    await startRecording();
+    clock.advance(1_000);
+    recorder.dispatch({ type: 'STOP' });
+    await recorder.settled();
+    const again = await reopen();
+    expect(again.getNotices().saved).toBe(true);
+    again.dispatch({ type: 'START' });
+    again.dispatch({ type: 'CONFIRM' });
+    await again.settled();
+    expect(again.getNotices().saved).toBe(false);
+  });
+
   it('saves the audio while recording, every second', async () => {
     await startRecording();
     clock.advance(2_500);

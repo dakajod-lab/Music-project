@@ -11,12 +11,18 @@ async function setQuota(app: AppDriver, context: BrowserContext, quotaSize: numb
 }
 
 /**
- * Simulates a crash: all JavaScript stops at once (no chance to save anything more), then the tab is gone.
- * (Chromium's own Page.crash also destroys the test's browser context, so the app could not be reopened.)
+ * Simulates a crash: JavaScript is paused in the debugger (no code runs any more, not even event handlers), then
+ * the tab is gone. The app gets no chance to save anything more.
+ * Earlier attempts that were NOT a real crash: Chromium's Page.crash also destroys the test's browser context;
+ * Runtime.terminateExecution only stops code running at that instant; freezing the page first marks it hidden.
+ * In the last two the app could still react to "page hidden" and save cleanly (found by repeating the test).
  */
 async function crash(app: AppDriver, context: BrowserContext): Promise<Page> {
   const cdp = await context.newCDPSession(app.page);
-  await cdp.send('Runtime.terminateExecution').catch(() => {});
+  await cdp.send('Debugger.enable');
+  await cdp.send('Debugger.pause');
+  // Make sure JavaScript is really paused before the tab goes away.
+  await new Promise<void>((resolve) => cdp.once('Debugger.paused', () => resolve()));
   await app.page.close({ runBeforeUnload: false });
   return context.newPage();
 }
@@ -67,16 +73,19 @@ Then('at most {int} s of audio before the interruption is lost', async ({ app },
 // ── STO-001 ──────────────────────────────────────────────────────────────────
 
 When('the user reloads the page and opens the app again', async ({ app }) => {
+  await app.waitUntilSaved(); // the user leaves after the app says the recording is saved
   app.oldRecordingLength = await app.page.getByTestId('recording-length').textContent();
   await app.page.reload();
 });
 
 When('the user closes the tab and opens the app again', async ({ app, context }) => {
+  await app.waitUntilSaved(); // the user leaves after the app says the recording is saved
   app.oldRecordingLength = await app.page.getByTestId('recording-length').textContent();
   await app.reopenIn(await closeTab(app, context));
 });
 
 When('the user restarts the browser and opens the app again', async ({ app, context, browser }) => {
+  await app.waitUntilSaved(); // the user leaves after the app says the recording is saved
   app.oldRecordingLength = await app.page.getByTestId('recording-length').textContent();
   // A new browser context with the stored data of the old one, IndexedDB included.
   const storageState = await context.storageState({ indexedDB: true });
