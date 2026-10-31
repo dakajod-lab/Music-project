@@ -3,6 +3,7 @@ import {
   CLIPPING_HOLD_MS,
   FULL_RECORDING_BYTES,
   RecorderController,
+  processingIsOn,
   SAVE_INTERVAL_MS,
 } from '../../src/core/recorder/RecorderController';
 import { MAX_RECORDING_MS } from '../../src/core/recorder/recorderMachine';
@@ -494,5 +495,40 @@ describe('REC-003 going to the background (core + fake lifecycle)', () => {
     const before = recorder.getState();
     lifecycle.hide();
     expect(recorder.getState()).toBe(before);
+  });
+});
+
+describe('issue #19 / R2 speech processing actually applied (core + fake adapters)', () => {
+  it('reports what the browser applied while the microphone is open, and nothing after', async () => {
+    mic.processing = { echoCancellation: false, noiseSuppression: true, autoGainControl: null };
+    await startRecording();
+    expect(recorder.getNotices().processing).toEqual(mic.processing);
+    recorder.dispatch({ type: 'STOP' });
+    await recorder.settled();
+    expect(recorder.getNotices().processing).toBeNull();
+  });
+
+  it('also during a level check, and nothing after it', async () => {
+    recorder.dispatch({ type: 'CHECK_LEVEL' });
+    await recorder.settled();
+    expect(recorder.getNotices().processing).toEqual(mic.processing);
+    recorder.dispatch({ type: 'STOP_CHECK' });
+    await recorder.settled();
+    expect(recorder.getNotices().processing).toBeNull();
+  });
+
+  // Decision table: any processing explicitly on → warn; off or unknown → no warning.
+  it.each([
+    { processing: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, warn: false },
+    { processing: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }, warn: true },
+    { processing: { echoCancellation: false, noiseSuppression: true, autoGainControl: false }, warn: true },
+    { processing: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }, warn: true },
+    { processing: { echoCancellation: null, noiseSuppression: null, autoGainControl: null }, warn: false },
+  ])('processingIsOn($processing) → $warn', ({ processing, warn }) => {
+    expect(processingIsOn(processing)).toBe(warn);
+  });
+
+  it('no microphone open → no warning', () => {
+    expect(processingIsOn(null)).toBe(false);
   });
 });

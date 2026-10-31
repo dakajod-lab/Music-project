@@ -3,6 +3,7 @@ import type {
   AudioOutput,
   AudioSession,
   Clock,
+  InputProcessing,
   Lifecycle,
   Playback,
   RecordingStore,
@@ -56,6 +57,8 @@ export class FakeAudioInput implements AudioInput {
   gate: Promise<void> | null = null;
   startCalls = 0;
   openSessions = 0;
+  /** What the fake browser reports as applied speech processing. */
+  processing: InputProcessing = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
   private endListeners: (() => void)[] = [];
   private sampleListeners: ((samples: Float32Array) => void)[] = [];
 
@@ -78,6 +81,7 @@ export class FakeAudioInput implements AudioInput {
     const blockLength = (this.sampleRate * FAKE_BLOCK_MS) / 1000;
     return {
       sampleRate: this.sampleRate,
+      processing: this.processing,
       onEnded: (listener) => this.endListeners.push(listener),
       onSamples: (listener) => this.sampleListeners.push(listener),
       onRecordedSamples: (listener) => recordedListeners.push(listener),

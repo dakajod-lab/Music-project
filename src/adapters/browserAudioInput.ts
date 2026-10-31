@@ -1,4 +1,4 @@
-import { type AudioInput, type AudioSession, MicrophoneError } from '../core/ports';
+import { type AudioInput, type AudioSession, type InputProcessing, MicrophoneError } from '../core/ports';
 
 const workletUrl = new URL('./capture-processor.js', import.meta.url);
 
@@ -10,15 +10,7 @@ export function createBrowserAudioInput(): AudioInput {
 
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            channelCount: 1,
-            // R2: all speech processing off by default.
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-          },
-        });
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, ...PROCESSING_OFF } });
       } catch (error) {
         throw new MicrophoneError(
           error instanceof DOMException &&
@@ -27,6 +19,7 @@ export function createBrowserAudioInput(): AudioInput {
             : 'noMicrophone',
         );
       }
+      stream = await insistOnNoProcessing(stream);
 
       const context = new AudioContext({ sampleRate: 48_000 });
       await context.audioWorklet.addModule(workletUrl);
@@ -67,8 +60,10 @@ export function createBrowserAudioInput(): AudioInput {
       };
 
       const track = stream.getAudioTracks()[0];
+      const processing = track ? readProcessing(track) : UNKNOWN;
       return {
         sampleRate: context.sampleRate,
+        processing,
         onEnded(listener) {
           track?.addEventListener('ended', listener);
         },
@@ -106,4 +101,41 @@ function concat(chunks: Float32Array[]): Float32Array {
     offset += chunk.length;
   }
   return out;
+}
+
+const PROCESSING_OFF = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+const UNKNOWN: InputProcessing = { echoCancellation: null, noiseSuppression: null, autoGainControl: null };
+
+function readProcessing(track: MediaStreamTrack): InputProcessing {
+  const settings = track.getSettings();
+  const flag = (value: unknown) => (typeof value === 'boolean' ? value : null);
+  return {
+    echoCancellation: flag(settings.echoCancellation),
+    noiseSuppression: flag(settings.noiseSuppression),
+    autoGainControl: flag(settings.autoGainControl),
+  };
+}
+
+/**
+ * Issue #19: a browser may ignore the "off" preference. Processing cannot be changed on an open track in
+ * Chromium (applyConstraints has no effect, found by a negative test), so when any processing is still on the
+ * microphone is opened again with strict ("exact") requirements. If the browser cannot meet them, the first
+ * stream is kept and the app warns the user.
+ */
+async function insistOnNoProcessing(stream: MediaStream): Promise<MediaStream> {
+  const track = stream.getAudioTracks()[0];
+  if (!track || !Object.values(readProcessing(track)).some((on) => on === true)) return stream;
+  stream.getTracks().forEach((t) => t.stop());
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: { exact: false },
+        noiseSuppression: { exact: false },
+        autoGainControl: { exact: false },
+      },
+    });
+  } catch {
+    return navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, ...PROCESSING_OFF } });
+  }
 }

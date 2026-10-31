@@ -150,4 +150,23 @@ describe('App', () => {
     await act(() => ctx.recorder.settled());
     expect(screen.getByTestId('low-storage-warning')).toBeInTheDocument();
   });
+
+  it('issue #19 shows the applied speech processing and warns when it is still on', async () => {
+    const ctx = setup();
+    ctx.mic.processing = { echoCancellation: false, noiseSuppression: true, autoGainControl: false };
+    await ctx.user.click(screen.getByRole('button', { name: 'Start recording' }));
+    await act(() => ctx.recorder.settled());
+    expect(screen.getByTestId('processing-info')).toHaveTextContent(
+      'echo cancellation off, noise suppression on, automatic gain off',
+    );
+    expect(screen.getByTestId('processing-warning')).toHaveTextContent(/keeps noise suppression switched on/);
+  });
+
+  it('issue #19 no warning when all speech processing is off', async () => {
+    const ctx = setup();
+    await ctx.user.click(screen.getByRole('button', { name: 'Start recording' }));
+    await act(() => ctx.recorder.settled());
+    expect(screen.getByTestId('processing-info')).toHaveTextContent('noise suppression off');
+    expect(screen.queryByTestId('processing-warning')).not.toBeInTheDocument();
+  });
 });

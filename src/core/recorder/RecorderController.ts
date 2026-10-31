@@ -1,5 +1,5 @@
 import { ClippingDetector, peakLevel } from '../level/levels';
-import type { AudioInput, AudioSession, Clock, Lifecycle, RecordingStore } from '../ports';
+import type { AudioInput, AudioSession, Clock, InputProcessing, Lifecycle, RecordingStore } from '../ports';
 import { MicrophoneError, StorageFullError } from '../ports';
 import {
   MAX_RECORDING_MS,
@@ -30,6 +30,8 @@ export interface Notices {
   saveFailed: boolean;
   /** The current recording is completely saved on the device. */
   saved: boolean;
+  /** Speech processing the browser applies to the open microphone; null when the microphone is closed. */
+  processing: InputProcessing | null;
 }
 
 export interface Recording {
@@ -45,7 +47,12 @@ export interface RecorderDependencies {
 }
 
 const SILENT: InputLevel = { peak: 0, clipping: false };
-const NO_NOTICES: Notices = { lowStorage: false, saveFailed: false, saved: false };
+const NO_NOTICES: Notices = { lowStorage: false, saveFailed: false, saved: false, processing: null };
+
+/** Issue #19: true when the browser keeps any speech processing on, which can make steady sounds fade. */
+export function processingIsOn(processing: InputProcessing | null): boolean {
+  return processing !== null && Object.values(processing).some((on) => on === true);
+}
 
 /**
  * Connects the pure state machine to the outside world (microphone, clock, storage, app lifecycle).
@@ -182,6 +189,7 @@ export class RecorderController {
       this.dispatch({ type: denied ? 'PERMISSION_DENIED' : 'NO_MICROPHONE' });
       return;
     }
+    this.setNotices({ ...this.notices, processing: this.session.processing });
     this.session.onEnded(() => this.dispatch({ type: 'INTERRUPTED' }));
     this.session.onSamples((samples) => this.measure(samples));
     this.session.onRecordedSamples((samples) => this.unsaved.push(samples));
@@ -194,7 +202,7 @@ export class RecorderController {
     if (!session) return;
     this.unsaved = [];
     this.storageFull = false;
-    this.setNotices(NO_NOTICES);
+    this.setNotices({ ...NO_NOTICES, processing: session.processing });
     this.save(() => this.store.begin(session.sampleRate));
     this.track(this.checkFreeStorage());
     session.beginRecording();
@@ -236,6 +244,7 @@ export class RecorderController {
     const session = this.session;
     this.session = null;
     this.resetLevel();
+    this.setNotices({ ...this.notices, processing: null });
     // Reviewed equivalent mutant (no `?.`): a session always exists while monitoring.
     await session?.stop();
   }
@@ -257,6 +266,7 @@ export class RecorderController {
     const session = this.session;
     this.session = null;
     this.resetLevel();
+    this.setNotices({ ...this.notices, processing: null });
     // Reviewed equivalent mutants here: a session always exists when a recording ends; the guard is defensive.
     if (!session) return;
     const samples = await session.stop();

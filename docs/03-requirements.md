@@ -51,3 +51,4 @@ Non-functional requirements (usability, performance, devices, ...) are in [04-nf
 | 2026-10-25 | STO-001.3: a recording recovered after a crash or closed tab is kept **and the user is told** it was recovered. | Honest about what happened; gives the manual test something visible to check. |
 | 2026-10-25 | REC-003: the app going to the background **stops** the recording and keeps the audio recorded before it. Background recording is a possible later feature. | A web page on Android cannot record reliably in the background. |
 | 2026-10-25 | STO-001.4: warn before recording when free storage is below a full-length recording (~58 MB), but still allow recording. | A short idea may still fit. |
+| 2026-10-31 | Added REC-001.5: the microphone records without speech processing. | Formalises the R2 decision after issue #19. |

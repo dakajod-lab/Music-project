@@ -1,7 +1,8 @@
 import { formatTime } from '../core/formatTime';
 import type { Player } from '../core/player/Player';
 import { MAX_RECORDING_MS } from '../core/recorder/recorderMachine';
-import type { RecorderController } from '../core/recorder/RecorderController';
+import type { InputProcessing } from '../core/ports';
+import { type RecorderController, processingIsOn } from '../core/recorder/RecorderController';
 import { useInputLevel, useNotices, usePlayerState, useRecorderState } from './useRecorder';
 
 const PROBLEM_TEXT = {
@@ -53,6 +54,7 @@ export function Recorder({ recorder, player }: { recorder: RecorderController; p
       </p>
 
       {micOpen && <InputLevelMeter recorder={recorder} />}
+      {micOpen && notices.processing && <ProcessingInfo processing={notices.processing} />}
 
       {isRecording && (
         <p>
@@ -176,6 +178,33 @@ function InputLevelMeter({ recorder }: { recorder: RecorderController }) {
       {level.clipping && (
         <p role="alert" data-testid="clipping-warning">
           Input is clipping (too loud). Move the microphone further away or play more softly.
+        </p>
+      )}
+    </div>
+  );
+}
+
+const PROCESSING_NAMES: Record<keyof InputProcessing, string> = {
+  echoCancellation: 'echo cancellation',
+  noiseSuppression: 'noise suppression',
+  autoGainControl: 'automatic gain',
+};
+
+/** Issue #19 / R2: what the browser really does to the microphone signal. */
+function ProcessingInfo({ processing }: { processing: InputProcessing }) {
+  const describe = (on: boolean | null) => (on === null ? 'unknown' : on ? 'on' : 'off');
+  const keys = Object.keys(PROCESSING_NAMES) as (keyof InputProcessing)[];
+  const stillOn = keys.filter((key) => processing[key] === true).map((key) => PROCESSING_NAMES[key]);
+  return (
+    <div>
+      <p data-testid="processing-info">
+        Speech processing:{' '}
+        {keys.map((key) => `${PROCESSING_NAMES[key]} ${describe(processing[key])}`).join(', ')}
+      </p>
+      {processingIsOn(processing) && (
+        <p role="alert" data-testid="processing-warning">
+          Your browser keeps {stillOn.join(' and ')} switched on. Held notes and steady sounds may fade in the
+          recording.
         </p>
       )}
     </div>

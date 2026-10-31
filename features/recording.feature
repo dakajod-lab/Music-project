@@ -21,6 +21,12 @@ Feature: Recording (REC)
       When the user starts recording
       Then the user is asked for microphone access
 
+    # Formalises the R2 decision (all speech processing off) after issue #19.
+    Scenario: REC-001.5 The microphone records without speech processing
+      Given microphone access is granted
+      When the user starts recording
+      Then echo cancellation, noise suppression and automatic gain are off
+
     Scenario Outline: REC-001.4 Microphone cannot be used
       Given <problem>
       When the user starts recording

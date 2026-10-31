@@ -142,3 +142,12 @@ Then('the old recording is unchanged', async ({ app }) => {
   await expect(app.status()).toHaveText('Recording ready');
   await expect(app.page.getByTestId('recording-length')).toHaveText(app.oldRecordingLength ?? '');
 });
+
+// ── Issue #19 / R2 ───────────────────────────────────────────────────────────
+
+Then('echo cancellation, noise suppression and automatic gain are off', async ({ app }) => {
+  await expect(app.page.getByTestId('processing-info')).toHaveText(
+    'Speech processing: echo cancellation off, noise suppression off, automatic gain off',
+  );
+  await expect(app.page.getByTestId('processing-warning')).toHaveCount(0);
+});
