@@ -9,8 +9,20 @@ export class MicrophoneError extends Error {
   }
 }
 
+/**
+ * Speech processing the browser actually applies to the microphone (R2, issue #19).
+ * true = on, false = off, null = the browser does not say.
+ */
+export interface InputProcessing {
+  echoCancellation: boolean | null;
+  noiseSuppression: boolean | null;
+  autoGainControl: boolean | null;
+}
+
 export interface AudioSession {
   readonly sampleRate: number;
+  /** What the browser really applied, after the app asked for all speech processing to be off. */
+  readonly processing: InputProcessing;
   /** Called when the microphone stops by itself (call, unplugged, permission revoked). */
   onEnded(listener: () => void): void;
   /** Called with every block of incoming samples, also before recording begins (level meter, REC-005). */

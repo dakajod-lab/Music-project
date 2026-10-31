@@ -73,6 +73,13 @@ export class AppDriver {
         const destination = context.createMediaStreamDestination();
         gain.node = new GainNode(context, { gain: gain.value });
         context.createMediaStreamSource(real).connect(gain.node).connect(destination);
+        // The app must see the real microphone's processing settings (issue #19), not the wrapper's.
+        const realTrack = real.getAudioTracks()[0];
+        const wrapped = destination.stream.getAudioTracks()[0];
+        if (realTrack && wrapped) {
+          wrapped.getSettings = () => realTrack.getSettings();
+          wrapped.applyConstraints = (c) => realTrack.applyConstraints(c);
+        }
         lastStream = destination.stream;
         return destination.stream;
       };

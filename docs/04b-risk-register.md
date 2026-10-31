@@ -75,6 +75,18 @@ echo cancellation removes the metronome and parts of the instrument, auto gain r
 
 **Decision:** Impact 2 agreed (the user can always record again).
 
+**Update 2026-10-31 (issue #19):** the risk materialised on the reference phone: recorded sound faded away within
+seconds. The automated "settings applied" check had been planned with the 0.2 noise filter toggle and was never
+built, although processing has been requested *off* since 0.1. Now:
+- The app reads what the browser **actually** applied (`getSettings()`), shows it while the microphone is open,
+  and warns when any processing is still on.
+- If processing is still on, the microphone is opened again with strict (`exact: false`) requirements.
+  `applyConstraints` on the open track does **not** work in Chromium (found by a negative test).
+- Regression scenario **REC-001.5**; negative checks: a browser that ignores the first request is corrected (pass),
+  and without the correction the test fails.
+- Open: confirm on the reference phone what Chrome/OxygenOS reports. If it reports "off" and the sound still
+  fades, the cause is below the browser (OS) or in our audio chain.
+
 ### R11: Clipping / distortion — ✅ agreed, score 9
 **Why it matters:** If recordings are distorted, nobody will use the app (owner). Impact raised to 3.
 

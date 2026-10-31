@@ -1,8 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const fakeMicFile = fileURLToPath(new URL('./tests/fixtures/audio/sine-440-normal.wav', import.meta.url));
+// Without the file Chromium's fake microphone silently records silence, which looks like an app bug.
+if (!existsSync(fakeMicFile)) {
+  throw new Error(`Test audio missing: ${fakeMicFile}. Run "npm run gen:audio" first.`);
+}
 
 // Chromium with a fake microphone that plays a known test file (docs/06-test-strategy.md §5).
 const chromiumLaunch = {

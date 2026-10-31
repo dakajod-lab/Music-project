@@ -138,3 +138,5 @@ In an audio/timing app the third kind is especially likely and important (R1, R4
 | 2026-10-06 | Stryker uses the command runner (`vitest run src/core` per mutant). | `@stryker-mutator/vitest-runner` 10.0 ran 0 tests per mutant with Vitest 5, so every mutant falsely survived. |
 | 2026-10-06 | Mutation testing also runs the integration tests (`tests/integration`). | Without them the RecorderController scored 0 % although it was tested (step 7.4). |
 | 2026-10-21 | Stryker timeouts raised (30 s + factor 3, concurrency 2); the timeout count is read before the score. | 285 of 363 mutants were "timeouts" (counted as detected) because the time limit was too tight; the real score was 95 %, not 99 %. |
+| 2026-10-31 | A test that the risk analysis plans is built when the behaviour it protects is built, not with a later feature. | Issue #19: the R2 "settings applied" check was tied to the 0.2 toggle, but "processing off" already existed in 0.1. |
+| 2026-10-31 | Acceptance tests stop with a clear error when the generated test audio is missing. | A fresh machine without the files made the fake microphone silent, which looked like an app bug. |
